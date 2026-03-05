@@ -18,6 +18,8 @@
         .cert-btn { display: none; margin-top: 10px; font-weight: 600; border-radius: 12px; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 9999; }
+        .ranking-filter { cursor: pointer; border-radius: 15px; padding: 8px 15px; font-size: 0.85rem; transition: 0.3s; margin: 2px; }
+        .ranking-filter.active { background-color: var(--primary); color: white; }
     </style>
 </head>
 <body>
@@ -41,14 +43,23 @@
                 <form id="regForm">
                     <div class="mb-3"><label class="small">เลข BIB</label><input type="text" id="regBib" class="form-control" required></div>
                     <div class="mb-3"><label class="small">ชื่อ-นามสกุล</label><input type="text" id="regName" class="form-control" required></div>
-                    <div class="mb-3">
-                        <label class="small">ประเภทนักวิ่ง</label>
-                        <select id="regCategory" class="form-select" required>
-                            <option value="Solo">วิ่งเดี่ยว (Solo)</option>
-                            <option value="Couple">วิ่งผลัด 2 คน (Couple)</option>
-                            <option value="Team3">วิ่งผลัด 3 คน (Team of 3)</option>
-                            <option value="Team10">วิ่งผลัด 10 คน (Team of 10)</option>
-                        </select>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="small">เพศ</label>
+                            <select id="regGender" class="form-select" required>
+                                <option value="M">ชาย</option>
+                                <option value="F">หญิง</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="small">ประเภทนักวิ่ง</label>
+                            <select id="regCategory" class="form-select" required>
+                                <option value="Solo">เดี่ยว</option>
+                                <option value="Couple">ผลัด 2</option>
+                                <option value="Team3">ผลัด 3</option>
+                                <option value="Team10">ผลัด 10</option>
+                            </select>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100 fw-bold">บันทึกลงทะเบียน</button>
                 </form>
@@ -82,7 +93,17 @@
                     <small>ระยะทางรวมสะสมของทุกคน</small>
                     <h2 class="fw-bold"><span id="grandTotalKm">0.00</span> กม.</h2>
                 </div>
-                <h6 class="fw-bold mb-3">🏆 Top 20 อันดับนักวิ่ง</h6>
+                
+                <div class="d-flex flex-wrap justify-content-center mb-3">
+                    <div class="ranking-filter border active" onclick="setRankingFilter('All', this)">ทั้งหมด</div>
+                    <div class="ranking-filter border" onclick="setRankingFilter('Solo-M', this)">ชายเดี่ยว</div>
+                    <div class="ranking-filter border" onclick="setRankingFilter('Solo-F', this)">หญิงเดี่ยว</div>
+                    <div class="ranking-filter border" onclick="setRankingFilter('Couple', this)">ผลัด 2</div>
+                    <div class="ranking-filter border" onclick="setRankingFilter('Team3', this)">ผลัด 3</div>
+                    <div class="ranking-filter border" onclick="setRankingFilter('Team10', this)">ผลัด 10</div>
+                </div>
+
+                <h6 class="fw-bold mb-3" id="rankingTitle">🏆 อันดับนักวิ่ง</h6>
                 <div class="table-responsive">
                     <table class="table table-sm table-hover">
                         <thead class="table-light"><tr><th>#</th><th>BIB</th><th>ชื่อ</th><th class="text-end">กม.</th></tr></thead>
@@ -122,8 +143,11 @@
     const distances = { 'Start': 0, 'CP1': 7, 'CP2': 56, 'CP3': 72, 'CP4': 89, 'CP5': 103, 'CP6': 104 };
     const pointNames = { 'Start': 'พิพิธภัณฑ์ศิลปะร่วมสมัย', 'CP1': 'หน้าบิ๊กซีสนามบิน', 'CP2': 'รพ.สต.บ้านแซว', 'CP3': 'รพ.สต.บ้านไร่', 'CP4': 'จุดชมวิวห้วยทรายมาน', 'CP5': 'วัดหาดไคร้', 'CP6': 'ศาลา 104 ระเบียงโขง' };
     
-    let html5QrCode, activeSession = null, localRunners = JSON.parse(localStorage.getItem('runners_local')) || {};
+    let html5QrCode, activeSession = null;
+    let currentFilter = 'All';
+    let globalData = [];
 
+    // ระบบจัดการจุดสแกนเหมือนเดิม
     async function startScanner() {
         try {
             const cams = await Html5Qrcode.getCameras();
@@ -151,37 +175,106 @@
 
     async function checkPoint(code) {
         const bib = document.getElementById('scanBib').value.trim(); if(!bib) return alert('ระบุ BIB');
-        const name = localRunners[bib]?.name || 'นักวิ่ง'; const now = new Date();
-        if(!activeSession) {
-            activeSession = { start: code, bib: bib, startTime: now.toISOString() };
-            speak("เริ่มจากจุด " + pointNames[code] + " คุณ " + name);
-            fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: bib, name: name, start: code, end: code, distance: 0 }) });
-        } else {
-            const dist = Math.abs(distances[code] - distances[activeSession.start]);
-            if(dist === 0) return speak("อยู่ที่เดิมค่ะ");
-            speak("ถึงจุด " + pointNames[code] + " ระยะ " + dist + " กม. เก่งมากคุณ " + name);
-            showLoading(true);
-            try { 
+        showLoading(true);
+        try {
+            const res = await fetch(SCRIPT_URL); const rows = await res.json();
+            const runner = rows.slice(1).find(r => String(r[2]).trim() === bib);
+            const name = runner ? runner[3] : 'นักวิ่ง';
+            const now = new Date();
+            
+            if(!activeSession) {
+                activeSession = { start: code, bib: bib, startTime: now.toISOString() };
+                speak("เริ่มจากจุด " + pointNames[code] + " คุณ " + name);
+                await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: bib, name: name, start: code, end: code, distance: 0 }) });
+            } else {
+                const dist = Math.abs(distances[code] - distances[activeSession.start]);
+                if(dist === 0) { showLoading(false); return speak("อยู่ที่เดิมค่ะ"); }
+                speak("ถึงจุด " + pointNames[code] + " ระยะ " + dist + " กม. เก่งมากคุณ " + name);
                 await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: bib, name: name, start: activeSession.start, end: code, distance: dist, startTime: activeSession.startTime }) });
                 activeSession = { start: code, bib: bib, startTime: now.toISOString() };
-            } catch(e) {}
-            showLoading(false);
-        }
+            }
+        } catch(e) {}
+        showLoading(false);
     }
 
+    // ลงทะเบียนส่ง เพศ และ ประเภท ไปด้วย
     document.getElementById('regForm').onsubmit = async (e) => {
         e.preventDefault(); 
         const bib = document.getElementById('regBib').value.trim(); 
         const name = document.getElementById('regName').value.trim();
+        const gender = document.getElementById('regGender').value;
         const category = document.getElementById('regCategory').value;
         showLoading(true);
         try {
-            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'register', bib: bib, name: name, category: category })});
-            localRunners[bib] = { name: name, category: category }; localStorage.setItem('runners_local', JSON.stringify(localRunners));
+            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ 
+                action: 'register', bib: bib, name: name, category: category, gender: gender 
+            })});
             document.getElementById('scanBib').value = bib; speak("ลงทะเบียนสำเร็จค่ะ");
             bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-run"]')).show();
         } catch(e) { alert("เกิดข้อผิดพลาด"); } showLoading(false);
     };
+
+    // ระบบจัดอันดับแบบกรองข้อมูล
+    function setRankingFilter(filter, el) {
+        currentFilter = filter;
+        document.querySelectorAll('.ranking-filter').forEach(btn => btn.classList.remove('active'));
+        el.classList.add('active');
+        renderRanking();
+    }
+
+    async function fetchDataFromCloud() {
+        showLoading(true);
+        try {
+            const res = await fetch(SCRIPT_URL); 
+            globalData = await res.json();
+            renderRanking();
+        } catch(e) {} showLoading(false);
+    }
+
+    function renderRanking() {
+        let summary = {}, info = {}, grandTotal = 0;
+        const rows = globalData.slice(1);
+        
+        // รวบรวมข้อมูลพื้นฐานนักวิ่งจากแถว REG
+        rows.forEach(r => {
+            const bib = String(r[2]).trim();
+            if(r[1] === 'REG') {
+                info[bib] = { name: r[3], cat: r[8], gen: r[9] }; // Column I=Category, J=Gender
+            }
+        });
+
+        // คำนวณระยะทางจากแถว RUN
+        rows.forEach(r => {
+            if(r[1] === 'RUN') {
+                const bib = String(r[2]).trim();
+                const d = parseFloat(r[5] || 0);
+                summary[bib] = (summary[bib] || 0) + d;
+                grandTotal += d;
+            }
+        });
+
+        document.getElementById('grandTotalKm').innerText = grandTotal.toFixed(2);
+
+        // กรองข้อมูลตาม Filter
+        let sorted = Object.entries(summary).filter(([bib, d]) => {
+            if (currentFilter === 'All') return true;
+            const runner = info[bib];
+            if (!runner) return false;
+            if (currentFilter === 'Solo-M') return runner.cat === 'Solo' && runner.gen === 'M';
+            if (currentFilter === 'Solo-F') return runner.cat === 'Solo' && runner.gen === 'F';
+            return runner.cat === currentFilter;
+        });
+
+        // เรียงลำดับจากระยะทางมากไปน้อย (ถ้าเท่ากันให้ดูเวลาเข้าเส้นชัย)
+        sorted.sort((a,b) => b[1] - a[1]);
+        
+        // แสดงผล 1-3 หรือ 1-20
+        const displayRows = sorted.slice(0, 20);
+        document.getElementById('top10Body').innerHTML = displayRows.map(([bib, d], i) => {
+            let trophy = i < 3 ? ['🥇','🥈','🥉'][i] : (i+1);
+            return `<tr><td>${trophy}</td><td>${bib}</td><td>${info[bib]?.name || 'นักวิ่ง'}</td><td class="text-end fw-bold">${d.toFixed(2)}</td></tr>`;
+        }).join('');
+    }
 
     async function loadMyStats() {
         const inputBib = document.getElementById('myBibSearch').value.trim(); if(!inputBib) return;
@@ -189,9 +282,10 @@
         try {
             const res = await fetch(SCRIPT_URL); const rows = await res.json();
             let totalDist = 0, name = "นักวิ่ง", histArray = [];
-            const myRows = rows.slice(1).filter(r => String(r[2]).trim() === String(inputBib));
+            const myRows = rows.slice(1).filter(r => String(r[2]).trim() === inputBib);
             if(myRows.length > 0) {
-                name = myRows[0][3] || name;
+                const regRow = myRows.find(r => r[1] === 'REG');
+                name = regRow ? regRow[3] : 'นักวิ่ง';
                 myRows.forEach(r => {
                     if(r[1] === 'RUN') {
                         const dist = parseFloat(r[5] || 0); totalDist += dist;
@@ -204,28 +298,12 @@
                 document.getElementById('myHistoryList').innerHTML = histArray.join('');
                 document.getElementById('myResultArea').style.display = 'block';
                 document.querySelectorAll('.cert-btn').forEach(b => b.style.display = 'none');
-                if (totalDist >= 104) { document.getElementById('myMedalDisplay').innerHTML = "🥇🏆🎆"; document.getElementById('btnCertGold').style.display = 'block'; speak("ยินดีด้วยผู้พิชิต 104 กิโลเมตร!"); playFireworkSound(); }
+                if (totalDist >= 104) { document.getElementById('myMedalDisplay').innerHTML = "🥇🏆🎆"; document.getElementById('btnCertGold').style.display = 'block'; speak("ยินดีด้วยผู้พิชิต 104 กิโลเมตร!"); }
                 else if (totalDist >= 20) { document.getElementById('btnCertBronze').style.display = 'block'; }
             } else { alert("ไม่พบข้อมูล BIB"); }
         } catch(e) {} showLoading(false);
     }
 
-    async function fetchDataFromCloud() {
-        showLoading(true);
-        try {
-            const res = await fetch(SCRIPT_URL); const rows = await res.json();
-            let summary = {}, names = {}, grandTotal = 0;
-            rows.slice(1).forEach(r => {
-                const bib = String(r[2]).trim(), name = r[3], d = parseFloat(r[5] || 0);
-                if(bib) { names[bib] = name; if(r[1] === 'RUN') { summary[bib] = (summary[bib] || 0) + d; grandTotal += d; } }
-            });
-            document.getElementById('grandTotalKm').innerText = grandTotal.toFixed(2);
-            const sorted = Object.entries(summary).sort((a,b) => b[1] - a[1]).slice(0, 20);
-            document.getElementById('top10Body').innerHTML = sorted.map(([bib, d], i) => `<tr><td>${i+1}</td><td>${bib}</td><td>${names[bib]}</td><td class="text-end">${d.toFixed(2)}</td></tr>`).join('');
-        } catch(e) {} showLoading(false);
-    }
-
-    function playFireworkSound() { /* โค้ดเสียงเดิมของอาจารย์ */ }
     function unlockAudio() { const m = new SpeechSynthesisUtterance('ระบบเสียงพร้อมแล้วค่ะ'); m.lang = 'th-TH'; window.speechSynthesis.speak(m); }
     function speak(t) { if ('speechSynthesis' in window) { const m = new SpeechSynthesisUtterance(t); m.lang = 'th-TH'; window.speechSynthesis.speak(m); } }
     function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
