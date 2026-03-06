@@ -183,51 +183,53 @@
     }
 
     // ดูผลงานส่วนตัว + ตรวจเงื่อนไข 24 ชม. และสแกนครบจุด
-    async function loadMyStats() {
-        const bib = document.getElementById('myBibSearch').value.trim();
-        if(!bib) return;
-        showLoading(true);
-        try {
-            const res = await fetch(SCRIPT_URL);
-            const rows = await res.json();
-            const myRows = rows.slice(1).filter(r => String(r[2]).trim() === bib);
+    // แก้ไขฟังก์ชัน loadMyStats เพื่อดึงเพศ (Gender) มาแสดงผลด้วย
+async function loadMyStats() {
+    const inputBib = document.getElementById('myBibSearch').value.trim();
+    if(!inputBib) return;
+    showLoading(true);
+    try {
+        const res = await fetch(SCRIPT_URL); 
+        const rows = await res.json();
+        const myRows = rows.slice(1).filter(r => String(r[2]).trim() === inputBib);
+        
+        if(myRows.length > 0) {
+            // ดึงข้อมูลพื้นฐานจากแถวลงทะเบียน (REG)
+            const regRow = myRows.find(r => r[1] === 'REG') || myRows[0];
+            let name = regRow[3];
+            let category = regRow[8]; // คอลัมน์ I
+            let gender = regRow[9] === 'M' ? 'ชาย' : 'หญิง'; // คอลัมน์ J
             
-            if(myRows.length > 0) {
-                let name = myRows[0][3];
-                let history = myRows.filter(r => r[1] === 'RUN');
-                let points = history.map(h => h[7]);
-                let totalDist = Math.max(...history.map(h => parseFloat(h[5] || 0)), 0);
-                
-                let startRow = history.find(h => h[7] === 'Start');
-                let finishRow = history.find(h => h[7] === 'CP6');
-                
-                let timeMsg = "สถานะ: กำลังแข่งขัน";
-                let statusHtml = '<span class="status-badge bg-primary text-white">ON TRACK</span>';
-                
-                if (startRow && finishRow) {
-                    let diffMs = new Date(finishRow[0]) - new Date(startRow[0]);
-                    let hours = diffMs / (1000 * 60 * 60);
-                    let allPointsOk = REQUIRED_POINTS.every(p => points.includes(p));
-                    
-                    if (hours <= LIMIT_HOURS && allPointsOk) {
-                        statusHtml = '<span class="status-badge bg-success text-white">OFFICIAL FINISHER</span>';
-                        timeMsg = `เวลาสุทธิ: ${hours.toFixed(2)} ชม.`;
-                        document.getElementById('btnCertGold').style.display = 'block';
-                    } else {
-                        statusHtml = '<span class="status-badge bg-danger text-white">DNF / OVERTIME</span>';
-                        timeMsg = hours > LIMIT_HOURS ? "เกินเวลา 24 ชม." : "สแกนจุดไม่ครบ";
-                    }
-                }
+            let allDistances = [0]; 
+            let histArray = [];
 
-                document.getElementById('myNameDisplay').innerText = name;
-                document.getElementById('myStatusBadge').innerHTML = statusHtml;
-                document.getElementById('myTimeMsg').innerText = timeMsg;
-                document.getElementById('myDistDisplay').innerText = totalDist.toFixed(2);
-                document.getElementById('myProgressBar').style.width = (totalDist/104*100) + '%';
-                document.getElementById('myResultArea').style.display = 'block';
+            myRows.forEach(r => {
+                if(r[1] === 'RUN') {
+                    const dist = parseFloat(r[5] || 0);
+                    allDistances.push(dist);
+                    histArray.unshift(`<div class="history-card shadow-sm border-start border-primary border-4">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-success fw-bold">+${dist.toFixed(2)} กม.</span></div>`);
+                }
+            });
+
+            // คำนวณระยะทางสูงสุดที่ทำได้ (ป้องกันค่า 431.00 กม.)
+            let currentMaxDist = Math.max(...allDistances); 
+
+            // แสดงผลที่หน้าจอ
+            document.getElementById('myNameDisplay').innerHTML = `${name} <small class="text-muted">(${gender})</small>`;
+            document.getElementById('myStatusBadge').innerHTML = `<span class="badge bg-info text-dark">${category}</span>`;
+            document.getElementById('myDistDisplay').innerText = currentMaxDist.toFixed(2);
+            document.getElementById('myProgressBar').style.width = Math.min((currentMaxDist / 104) * 100, 100) + '%';
+            document.getElementById('myHistoryList').innerHTML = histArray.join('');
+            document.getElementById('myResultArea').style.display = 'block';
+            
+            // ตรวจสอบเงื่อนไขเหรียญรางวัล
+            if (currentMaxDist >= 104) { 
+                document.getElementById('myMedalDisplay').innerHTML = "🥇🏆🎆"; 
+                speak("ยินดีด้วยค่ะ คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตร");
             }
-        } catch(e) { alert("เกิดข้อผิดพลาด"); }
-        showLoading(false);
+        } else { alert("ไม่พบข้อมูล BIB นี้ในระบบค่ะ"); }
+    } catch(e) { console.error(e); } 
+    showLoading(false);
     }
 
     function unlockAudio() { const m = new SpeechSynthesisUtterance('ระบบพร้อมทำงานค่ะ'); m.lang = 'th-TH'; window.speechSynthesis.speak(m); }
@@ -264,45 +266,62 @@
 
     // 2. แก้ไขส่วนการคำนวณระยะทางรวม (Fix 431.00 km -> 104.00 km)
     async function loadMyStats() {
-        const inputBib = document.getElementById('myBibSearch').value.trim();
-        if(!inputBib) return;
-        showLoading(true);
-        try {
-            const res = await fetch(SCRIPT_URL); 
-            const rows = await res.json();
-            const myRows = rows.slice(1).filter(r => String(r[2]).trim() === inputBib);
+    const inputBib = document.getElementById('myBibSearch').value.trim();
+    if(!inputBib) return;
+    showLoading(true);
+    try {
+        const res = await fetch(SCRIPT_URL); 
+        const rows = await res.json();
+        const myRows = rows.slice(1).filter(r => String(r[2]).trim() === inputBib);
+        
+        if(myRows.length > 0) {
+            // ดึงข้อมูลจากแถวลงทะเบียน (REG)
+            const regRow = myRows.find(r => r[1] === 'REG') || myRows[0];
+            let name = regRow[3]; // คอลัมน์ D
+            let category = regRow[8]; // คอลัมน์ I
             
-            if(myRows.length > 0) {
-                let allDistances = [0]; // เก็บค่าระยะทางทุกจุดที่สแกน
-                let name = myRows[0][3];
-                let histArray = [];
+            // ตรวจสอบและแสดงเพศ (Gender) จากคอลัมน์ J
+            let genderVal = regRow[9]; // คอลัมน์ J
+            let genderText = (genderVal === 'M' || genderVal === 'ชาย') ? 'ชาย' : 'หญิง';
 
-                myRows.forEach(r => {
-                    if(r[1] === 'RUN') {
-                        const dist = parseFloat(r[5] || 0);
-                        allDistances.push(dist); // ใส่ค่าเข้า Array
-                        histArray.unshift(`<div class="history-card shadow-sm border-start border-primary border-4">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-success fw-bold">+${dist.toFixed(2)} กม.</span></div>`);
-                    }
-                });
+            let allDistances = [0]; 
+            let histArray = [];
 
-                // ใช้ Math.max เพื่อหาระยะทางที่ไกลที่สุดที่ไปถึง (จะไม่บวกซ้ำกันแล้วครับ)
-                let currentMaxDist = Math.max(...allDistances); 
+            myRows.forEach(r => {
+                if(r[1] === 'RUN') {
+                    const dist = parseFloat(r[5] || 0);
+                    allDistances.push(dist);
+                    histArray.unshift(`<div class="history-card shadow-sm border-start border-primary border-4">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-success fw-bold">+${dist.toFixed(2)} กม.</span></div>`);
+                }
+            });
 
-                document.getElementById('myNameDisplay').innerText = name;
-                document.getElementById('myDistDisplay').innerText = currentMaxDist.toFixed(2);
-                document.getElementById('myProgressBar').style.width = Math.min((currentMaxDist / 104) * 100, 100) + '%';
-                document.getElementById('myHistoryList').innerHTML = histArray.join('');
-                document.getElementById('myResultArea').style.display = 'block';
-                
-                // เช็คเหรียญรางวัลตามระยะจริง
-                if (currentMaxDist >= 104) { document.getElementById('myMedalDisplay').innerHTML = "🥇🏆🎆"; }
-            } else { alert("ไม่พบข้อมูล BIB"); }
-        } catch(e) {} 
-        showLoading(false);
-    }
+            // แก้ไขให้แสดงระยะทางสูงสุด ไม่เอามาบวกซ้ำกัน (ป้องกันค่า 431.00 กม.)
+            let currentMaxDist = Math.max(...allDistances); 
+
+            // --- ส่วนการแสดงผลบนหน้าจอ ---
+            document.getElementById('myNameDisplay').innerHTML = `
+                <div class="fw-bold">${name}</div>
+                <div class="small text-muted">เพศ: ${genderText} | ประเภท: ${category}</div>
+            `;
+            
+            document.getElementById('myDistDisplay').innerText = currentMaxDist.toFixed(2);
+            document.getElementById('myProgressBar').style.width = Math.min((currentMaxDist / 104) * 100, 100) + '%';
+            document.getElementById('myHistoryList').innerHTML = histArray.join('');
+            document.getElementById('myResultArea').style.display = 'block';
+            
+            // แสดงเอฟเฟกต์เมื่อเข้าเส้นชัย
+            if (currentMaxDist >= 104) { 
+                document.getElementById('myMedalDisplay').innerHTML = "🥇🏆🎆"; 
+                speak("ยินดีด้วยค่ะ คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตร");
+            }
+        } else { alert("ไม่พบข้อมูล BIB นี้ครับ"); }
+    } catch(e) { console.error(e); } 
+    showLoading(false);
+}
 </script>
 </body>
 </html>
+
 
 
 
