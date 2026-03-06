@@ -91,7 +91,7 @@
                     <small>รวมระยะทางผู้ร่วมงานทั้งหมด</small>
                     <h2 class="fw-bold"><span id="grandTotalKm">0.00</span> กม.</h2>
                 </div>
-                <div id="rankingContent">คลิก "อันดับ" เพื่อโหลดข้อมูล</div>
+                <div id="rankingContent" class="text-center">คลิก "อันดับ" เพื่อโหลดข้อมูล</div>
             </div>
         </div>
 
@@ -102,16 +102,14 @@
                     <button class="btn btn-primary" onclick="loadMyStats()">ดูผลงาน</button>
                 </div>
                 <div id="myResultArea" style="display:none;">
-                    <h4 id="myNameDisplay" class="fw-bold text-primary">-</h4>
-                    <div id="myStatusBadge" class="mb-2"></div>
+                    <div id="myNameDisplay" class="fw-bold text-primary mb-1"></div>
+                    <div id="myPaceDisplay" class="mb-3"></div>
                     <div id="myMedalDisplay" style="font-size:3rem;">🏃‍♂️</div>
-                    <div id="myTimeMsg" class="small fw-bold text-muted mb-3"></div>
                     <div class="progress" style="height:25px; border-radius:15px;">
                         <div id="myProgressBar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: 0%"></div>
                     </div>
                     <div class="small mt-1"><span id="myDistDisplay">0.00</span> / 104 กม.</div>
                     <div id="myHistoryList" class="text-start mt-3"></div>
-                    <a id="btnCertGold" href="#" class="btn btn-warning cert-btn w-100">🏆 พิมพ์ใบประกาศ Finisher</a>
                 </div>
             </div>
         </div>
@@ -124,12 +122,8 @@
     const distances = { 'Start': 0, 'CP1': 7, 'CP2': 56, 'CP3': 72, 'CP4': 89, 'CP5': 103, 'CP6': 104 };
     const pointNames = { 'Start': 'จุด Start', 'CP1': 'CP-1', 'CP2': 'CP-2', 'CP3': 'CP-3', 'CP4': 'CP-4', 'CP5': 'CP-5', 'CP6': 'Finish (กม.104)' };
     
-    const LIMIT_HOURS = 24;
-    const REQUIRED_POINTS = ['Start', 'CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6'];
-
     let html5QrCode;
 
-    // ระบบสแกน
     async function startScanner() {
         try {
             const cams = await Html5Qrcode.getCameras();
@@ -155,94 +149,9 @@
         document.getElementById('btn' + p).style.display = 'block'; 
     }
 
-    // ลงทะเบียน
     document.getElementById('regForm').onsubmit = async (e) => {
         e.preventDefault();
-        const data = {
-            action: 'register',
-            bib: document.getElementById('regBib').value.trim(),
-            name: document.getElementById('regName').value.trim(),
-            gender: document.getElementById('regGender').value,
-            category: document.getElementById('regCategory').value
-        };
-        showLoading(true);
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-        speak("ลงทะเบียนสำเร็จค่ะ");
-        showLoading(false);
-    };
-
-    // บันทึกจุดสแกน
-    async function checkPoint(code) {
-        const bib = document.getElementById('scanBib').value.trim();
-        if(!bib) return alert('ระบุ BIB');
-        showLoading(true);
-        const data = { action: 'record', bib: bib, end: code, distance: distances[code] };
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-        speak("บันทึกจุด " + pointNames[code] + " สำเร็จ");
-        showLoading(false);
-    }
-
-    // ดูผลงานส่วนตัว + ตรวจเงื่อนไข 24 ชม. และสแกนครบจุด
-    // แก้ไขฟังก์ชัน loadMyStats เพื่อดึงเพศ (Gender) มาแสดงผลด้วย
-async function loadMyStats() {
-    const inputBib = document.getElementById('myBibSearch').value.trim();
-    if(!inputBib) return;
-    showLoading(true);
-    try {
-        const res = await fetch(SCRIPT_URL); 
-        const rows = await res.json();
-        const myRows = rows.slice(1).filter(r => String(r[2]).trim() === inputBib);
-        
-        if(myRows.length > 0) {
-            // ดึงข้อมูลพื้นฐานจากแถวลงทะเบียน (REG)
-            const regRow = myRows.find(r => r[1] === 'REG') || myRows[0];
-            let name = regRow[3];
-            let category = regRow[8]; // คอลัมน์ I
-            let gender = regRow[9] === 'M' ? 'ชาย' : 'หญิง'; // คอลัมน์ J
-            
-            let allDistances = [0]; 
-            let histArray = [];
-
-            myRows.forEach(r => {
-                if(r[1] === 'RUN') {
-                    const dist = parseFloat(r[5] || 0);
-                    allDistances.push(dist);
-                    histArray.unshift(`<div class="history-card shadow-sm border-start border-primary border-4">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-success fw-bold">+${dist.toFixed(2)} กม.</span></div>`);
-                }
-            });
-
-            // คำนวณระยะทางสูงสุดที่ทำได้ (ป้องกันค่า 431.00 กม.)
-            let currentMaxDist = Math.max(...allDistances); 
-
-            // แสดงผลที่หน้าจอ
-            document.getElementById('myNameDisplay').innerHTML = `${name} <small class="text-muted">(${gender})</small>`;
-            document.getElementById('myStatusBadge').innerHTML = `<span class="badge bg-info text-dark">${category}</span>`;
-            document.getElementById('myDistDisplay').innerText = currentMaxDist.toFixed(2);
-            document.getElementById('myProgressBar').style.width = Math.min((currentMaxDist / 104) * 100, 100) + '%';
-            document.getElementById('myHistoryList').innerHTML = histArray.join('');
-            document.getElementById('myResultArea').style.display = 'block';
-            
-            // ตรวจสอบเงื่อนไขเหรียญรางวัล
-            if (currentMaxDist >= 104) { 
-                document.getElementById('myMedalDisplay').innerHTML = "🥇🏆🎆"; 
-                speak("ยินดีด้วยค่ะ คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตร");
-            }
-        } else { alert("ไม่พบข้อมูล BIB นี้ในระบบค่ะ"); }
-    } catch(e) { console.error(e); } 
-    showLoading(false);
-    }
-
-    function unlockAudio() { const m = new SpeechSynthesisUtterance('ระบบพร้อมทำงานค่ะ'); m.lang = 'th-TH'; window.speechSynthesis.speak(m); }
-    function speak(t) { if ('speechSynthesis' in window) { const m = new SpeechSynthesisUtterance(t); m.lang = 'th-TH'; window.speechSynthesis.speak(m); } }
-    function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
-</script>
-<script>
-    // ... ส่วนบนคงเดิม ...
-
-    // 1. แก้ไขส่วนลงทะเบียนให้มีเสียงแจ้งเตือน
-    document.getElementById('regForm').onsubmit = async (e) => {
-        e.preventDefault(); 
-        const bib = document.getElementById('regBib').value.trim(); 
+        const bib = document.getElementById('regBib').value.trim();
         const name = document.getElementById('regName').value.trim();
         const gender = document.getElementById('regGender').value;
         const category = document.getElementById('regCategory').value;
@@ -254,73 +163,97 @@ async function loadMyStats() {
                 mode: 'no-cors', 
                 body: JSON.stringify({ action: 'register', bib: bib, name: name, category: category, gender: gender })
             });
-            
-            // เพิ่มเสียงแจ้งเตือนตรงนี้ครับอาจารย์
-            speak("ลงทะเบียนสำเร็จแล้วค่ะ"); 
-            
+            speak("ลงทะเบียนสำเร็จแล้วค่ะ");
             document.getElementById('scanBib').value = bib;
             bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-run"]')).show();
         } catch(e) { alert("เกิดข้อผิดพลาด"); } 
         showLoading(false);
     };
 
-    // 2. แก้ไขส่วนการคำนวณระยะทางรวม (Fix 431.00 km -> 104.00 km)
+    async function checkPoint(code) {
+        const bib = document.getElementById('scanBib').value.trim();
+        if(!bib) return alert('ระบุ BIB');
+        showLoading(true);
+        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: bib, end: code, distance: distances[code] }) });
+        speak("บันทึกจุด " + pointNames[code] + " สำเร็จ");
+        showLoading(false);
+    }
+
     async function loadMyStats() {
-    const inputBib = document.getElementById('myBibSearch').value.trim();
-    if(!inputBib) return;
-    showLoading(true);
-    try {
-        const res = await fetch(SCRIPT_URL); 
-        const rows = await res.json();
-        const myRows = rows.slice(1).filter(r => String(r[2]).trim() === inputBib);
-        
-        if(myRows.length > 0) {
-            // ดึงข้อมูลจากแถวลงทะเบียน (REG)
-            const regRow = myRows.find(r => r[1] === 'REG') || myRows[0];
-            let name = regRow[3]; // คอลัมน์ D
-            let category = regRow[8]; // คอลัมน์ I
+        const inputBib = document.getElementById('myBibSearch').value.trim();
+        if(!inputBib) return;
+        showLoading(true);
+        try {
+            const res = await fetch(SCRIPT_URL); 
+            const rows = await res.json();
+            const myRows = rows.slice(1).filter(r => String(r[2]).trim() === inputBib);
             
-            // ตรวจสอบและแสดงเพศ (Gender) จากคอลัมน์ J
-            let genderVal = regRow[9]; // คอลัมน์ J
-            let genderText = (genderVal === 'M' || genderVal === 'ชาย') ? 'ชาย' : 'หญิง';
+            if(myRows.length > 0) {
+                const regRow = myRows.find(r => r[1] === 'REG') || myRows[0];
+                let name = regRow[3];
+                let category = regRow[8]; 
+                let genderVal = regRow[9];
+                let genderText = (genderVal === 'M' || genderVal === 'ชาย') ? 'ชาย' : 'หญิง';
 
-            let allDistances = [0]; 
-            let histArray = [];
+                let allDistances = [0]; 
+                let histArray = [];
+                let startTime = null;
+                let lastTime = null;
 
-            myRows.forEach(r => {
-                if(r[1] === 'RUN') {
-                    const dist = parseFloat(r[5] || 0);
-                    allDistances.push(dist);
-                    histArray.unshift(`<div class="history-card shadow-sm border-start border-primary border-4">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-success fw-bold">+${dist.toFixed(2)} กม.</span></div>`);
+                myRows.forEach(r => {
+                    if(r[1] === 'RUN') {
+                        const dist = parseFloat(r[5] || 0);
+                        const currentTime = new Date(r[0]);
+                        allDistances.push(dist);
+                        
+                        if (r[7] === 'Start') startTime = currentTime;
+                        lastTime = currentTime;
+
+                        histArray.unshift(`<div class="history-card shadow-sm border-start border-primary border-4">📅 ${currentTime.toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-success fw-bold">+${dist.toFixed(2)} กม.</span></div>`);
+                    }
+                });
+
+                let currentMaxDist = Math.max(...allDistances); 
+                
+                // คำนวณ Pace
+                let paceText = "-";
+                if (startTime && lastTime && currentMaxDist > 0) {
+                    let diffMs = lastTime - startTime;
+                    let diffMins = diffMs / (1000 * 60);
+                    let paceRaw = diffMins / currentMaxDist;
+                    let pMin = Math.floor(paceRaw);
+                    let pSec = Math.round((paceRaw - pMin) * 60);
+                    paceText = `${pMin}:${pSec.toString().padStart(2, '0')} min/km`;
                 }
-            });
 
-            // แก้ไขให้แสดงระยะทางสูงสุด ไม่เอามาบวกซ้ำกัน (ป้องกันค่า 431.00 กม.)
-            let currentMaxDist = Math.max(...allDistances); 
+                // แสดงผลบนหน้าจอ
+                document.getElementById('myNameDisplay').innerHTML = `
+                    <div class="fw-bold h4 mb-0">${name}</div>
+                    <div class="small text-muted mb-2">เพศ: ${genderText} | ประเภท: ${category}</div>
+                `;
+                document.getElementById('myPaceDisplay').innerHTML = `<span class="badge bg-warning text-dark px-3 py-2" style="font-size: 0.95rem;">Average Pace: ${paceText}</span>`;
+                
+                document.getElementById('myDistDisplay').innerText = currentMaxDist.toFixed(2);
+                document.getElementById('myProgressBar').style.width = Math.min((currentMaxDist / 104) * 100, 100) + '%';
+                document.getElementById('myHistoryList').innerHTML = histArray.join('');
+                document.getElementById('myResultArea').style.display = 'block';
+                
+                if (currentMaxDist >= 104) { 
+                    document.getElementById('myMedalDisplay').innerHTML = "🥇🏆🎆"; 
+                    speak("ยินดีด้วยค่ะ คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตร");
+                }
+            } else { alert("ไม่พบข้อมูล BIB นี้ครับ"); }
+        } catch(e) { console.error(e); } 
+        showLoading(false);
+    }
 
-            // --- ส่วนการแสดงผลบนหน้าจอ ---
-            document.getElementById('myNameDisplay').innerHTML = `
-                <div class="fw-bold">${name}</div>
-                <div class="small text-muted">เพศ: ${genderText} | ประเภท: ${category}</div>
-            `;
-            
-            document.getElementById('myDistDisplay').innerText = currentMaxDist.toFixed(2);
-            document.getElementById('myProgressBar').style.width = Math.min((currentMaxDist / 104) * 100, 100) + '%';
-            document.getElementById('myHistoryList').innerHTML = histArray.join('');
-            document.getElementById('myResultArea').style.display = 'block';
-            
-            // แสดงเอฟเฟกต์เมื่อเข้าเส้นชัย
-            if (currentMaxDist >= 104) { 
-                document.getElementById('myMedalDisplay').innerHTML = "🥇🏆🎆"; 
-                speak("ยินดีด้วยค่ะ คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตร");
-            }
-        } else { alert("ไม่พบข้อมูล BIB นี้ครับ"); }
-    } catch(e) { console.error(e); } 
-    showLoading(false);
-}
+    function unlockAudio() { const m = new SpeechSynthesisUtterance('ระบบพร้อมทำงานค่ะ'); m.lang = 'th-TH'; window.speechSynthesis.speak(m); }
+    function speak(t) { if ('speechSynthesis' in window) { const m = new SpeechSynthesisUtterance(t); m.lang = 'th-TH'; window.speechSynthesis.speak(m); } }
+    function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
 </script>
 </body>
 </html>
+
 
 
 
