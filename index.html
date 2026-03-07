@@ -259,60 +259,74 @@
     }
 
     async function loadMyStats() {
-        const bib = document.getElementById('myBibSearch').value.trim(); if(!bib) return;
-        showLoading(true);
-        try {
-            const res = await fetch(SCRIPT_URL);
-            const rows = await res.json();
-            const allRanks = processRanking(rows, 'All').list;
-            const myRankIndex = allRanks.findIndex(r => r.bib === bib);
-            const myData = allRanks[myRankIndex];
+    const bib = document.getElementById('myBibSearch').value.trim(); if(!bib) return;
+    showLoading(true);
+    try {
+        const res = await fetch(SCRIPT_URL);
+        const rows = await res.json();
+        const allRanks = processRanking(rows, 'All').list;
+        const myRankIndex = allRanks.findIndex(r => r.bib === bib);
+        const myData = allRanks[myRankIndex];
 
-            if(myData) {
-                const s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN');
-                let histArray = s.map(r => `<div class="history-card">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-warning">+${parseFloat(r[5]).toFixed(2)} กม.</span></div>`);
-                
-                document.getElementById('myNameDisplay').innerText = myData.name;
-                document.getElementById('myRankDisplay').innerText = `อันดับรวม: ${myRankIndex + 1}`;
-                
-                // --- Logic สถานะการวิ่งฉบับแก้ไข (Fix Live Status) ---
-                const eventStartDate = s.length > 0 ? new Date(s[0][0]) : null;
-                const now = new Date();
-                const diffHours = eventStartDate ? (now - eventStartDate) / (1000 * 60 * 60) : 0;
+        if(myData) {
+            const s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN');
+            let histArray = s.map(r => `<div class="history-card">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-warning">+${parseFloat(r[5]).toFixed(2)} กม.</span></div>`);
+            
+            document.getElementById('myNameDisplay').innerText = myData.name;
+            document.getElementById('myRankDisplay').innerText = `อันดับรวม: ${myRankIndex + 1}`;
+            
+            // --- ระบบเสียงและสถานะ (Updated) ---
+            const eventStartDate = s.length > 0 ? new Date(s[0][0]) : null;
+            const now = new Date();
+            const diffHours = eventStartDate ? (now - eventStartDate) / (1000 * 60 * 60) : 0;
 
-                if (myData.isFinish) {
-                    document.getElementById('myStatusDisplay').innerHTML = "🥇 <span class='text-success'>OFFICIAL FINISHER</span>";
-                } else if (diffHours < LIMIT_HOURS || s.length > 0) {
-                    // หากมีการสแกนอย่างน้อย 1 จุด ให้ถือว่ากำลัง LIVE อยู่ก่อนจนกว่าจะยืนยัน DNF
-                    document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
-                } else {
-                    document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text'>DNF (Keep Fighting!)</span>";
+            if (myData.isFinish) {
+                // สถานะ Finish
+                document.getElementById('myStatusDisplay').innerHTML = "🥇 <span class='text-success'>OFFICIAL FINISHER</span>";
+                speakTrainer(`ยินดีด้วยอย่างยิ่งครับคุณ ${myData.name}! คุณทำสำเร็จแล้ว คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตรอย่างเป็นทางการครับ เก่งที่สุดเลย!`);
+            } else if (diffHours < LIMIT_HOURS || s.length > 0) {
+                // สถานะ LIVE
+                document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
+                
+                // สุ่มคำพูดให้กำลังใจกลางทาง
+                const cheerQuotes = [
+                    `คุณ ${myData.name} ครับ อีกนิดเดียวจะถึงเส้นชัยแล้ว สู้ๆ นะครับ!`,
+                    `สุดยอดมากครับคุณ ${myData.name} ก้าวต่อไปครับ เราเชื่อว่าคุณทำได้!`,
+                    `คุณคือความภูมิใจของเชียงของครับคุณ ${myData.name} มุ่งสู่เส้นชัยต่อไปครับ!`,
+                    `ร่างกายอาจจะเหนื่อยแต่ใจต้องสู้นะครับคุณ ${myData.name} อีกอึดใจเดียวเท่านั้น!`
+                ];
+                const randomCheer = cheerQuotes[Math.floor(Math.random() * cheerQuotes.length)];
+                speakTrainer(randomCheer);
+            } else {
+                document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text'>DNF (Keep Fighting!)</span>";
+                speakTrainer(`เป็นกำลังใจให้ในความมุ่งมั่นนะครับคุณ ${myData.name} ระยะทางที่ทำได้คือความภูมิใจ ปีหน้ากลับมาแก้มือใหม่นะครับ สู้ๆ ครับ`);
+            }
+
+            // --- คำนวณ Pace ---
+            let paceText = "--:--";
+            if (s.length > 0 && myData.maxDist > 0) {
+                const firstT = new Date(s[s.length-1][0]); 
+                const lastT = new Date(s[0][0]); 
+                let mins = (lastT - firstT) / (1000 * 60);
+                if (mins > 0) {
+                    let pace = mins / myData.maxDist;
+                    paceText = `${Math.floor(pace)}:${Math.round((pace%1)*60).toString().padStart(2,'0')} min/km`;
                 }
-
-                // --- คำนวณ Pace ฉบับแก้ไข (Fix สมศรี 1004) ---
-                let paceText = "--:--";
-                if (s.length > 0 && myData.maxDist > 0) {
-                    const firstT = new Date(s[s.length-1][0]); // จุดแรกที่บันทึก
-                    const lastT = new Date(s[0][0]); // จุดล่าสุด
-                    let mins = (lastT - firstT) / (1000 * 60);
-                    if (mins > 0) {
-                        let pace = mins / myData.maxDist;
-                        paceText = `${Math.floor(pace)}:${Math.round((pace%1)*60).toString().padStart(2,'0')} min/km`;
-                    }
-                }
-                
-                document.getElementById('myPaceBadge').innerHTML = `<span class="badge bg-warning text-dark">Pace เฉลี่ย: ${paceText}</span>`;
-                document.getElementById('myDistDisplay').innerText = myData.maxDist.toFixed(2);
-                document.getElementById('myProgressBar').style.width = (myData.maxDist/104*100) + '%';
-                document.getElementById('myHistoryList').innerHTML = histArray.join('');
-                document.getElementById('myResultArea').style.display = 'block';
-            } else { alert("ไม่พบข้อมูล BIB"); }
-        } catch(e) { console.error(e); }
-        showLoading(false);
-    }
+            }
+            
+            document.getElementById('myPaceBadge').innerHTML = `<span class="badge bg-warning text-dark">Pace เฉลี่ย: ${paceText}</span>`;
+            document.getElementById('myDistDisplay').innerText = myData.maxDist.toFixed(2);
+            document.getElementById('myProgressBar').style.width = (myData.maxDist/104*100) + '%';
+            document.getElementById('myHistoryList').innerHTML = histArray.join('');
+            document.getElementById('myResultArea').style.display = 'block';
+        } else { alert("ไม่พบข้อมูล BIB"); }
+    } catch(e) { console.error(e); }
+    showLoading(false);
+}
 </script>
 </body>
 </html>
+
 
 
 
