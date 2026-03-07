@@ -136,10 +136,9 @@
 
     let html5QrCode;
 
-    // --- ระบบเสียง Trainer (แก้ไขใหม่) ---
     function speakTrainer(text) {
         if (!('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel(); // ล้างคิวเสียงเก่าก่อนพูดใหม่
+        window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'th-TH';
         utterance.rate = 1.0; 
@@ -147,15 +146,13 @@
         window.speechSynthesis.speak(utterance);
     }
 
-    function unlockAudio() { 
-        speakTrainer("ระบบเสียงเทรนเนอร์ พร้อมดูแลนักวิ่งทุกคนแล้วค่ะ สู้ๆ นะคะ"); 
-    }
+    function unlockAudio() { speakTrainer("ระบบเสียงเทรนเนอร์ พร้อมดูแลนักวิ่งทุกคนแล้วค่ะ สู้ๆ นะคะ"); }
+    function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
 
-    // ฟังก์ชันสร้างประโยคให้กำลังใจแบบสุ่ม
     function getEncouragement(name, pointCode) {
         const quotes = {
             'Start': ["ขอให้เป็นวันที่ยอดเยี่ยมนะครับ", "เริ่มต้นการเดินทางที่ยิ่งใหญ่ได้แล้ว", "ลุยเลยครับ เราเชื่อว่าคุณทำได้"],
-            'Mid': ["สุดยอดมากครับ", "ร่างกายอาจจะเหนื่อยแต่ใจคุณต้องสู่นะ", "ไปต่อครับ อีกนิดเดียวจะถึงจุดพักแล้ว", "คุณคือความภูมิใจของเชียงของครับ"],
+            'Mid': ["สุดยอดมากครับ", "ร่างกายอาจจะเหนื่อยแต่ใจต้องสู้นะ", "ไปต่อครับ อีกนิดเดียวจะถึงจุดพักแล้ว", "คุณคือความภูมิใจของเชียงของครับ"],
             'Near': ["ใจสู้มากครับ อีกอึดใจเดียวเท่านั้น", "เห็นแสงสว่างที่เส้นชัยหรือยัง", "ประวัติศาสตร์กำลังจะจดจำชื่อคุณครับ"],
             'CP6': ["ยินดีด้วยอย่างยิ่งครับ คุณทำสำเร็จแล้ว", "คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตรครับ", "พักผ่อนให้เต็มที่นะครับ คุณเก่งที่สุดเลย"]
         };
@@ -163,12 +160,10 @@
         if (pointCode === 'Start') cat = 'Start';
         else if (pointCode === 'CP5') cat = 'Near';
         else if (pointCode === 'CP6') cat = 'CP6';
-        
         const rand = quotes[cat][Math.floor(Math.random() * quotes[cat].length)];
         return `สวัสดีครับคุณ ${name}. บันทึกจุด ${pointNames[pointCode]} เรียบร้อย. ${rand}. สู้ๆ นะครับ!`;
     }
 
-    // --- ส่วนการทำงานหลัก ---
     async function startScanner() {
         try {
             const cams = await Html5Qrcode.getCameras();
@@ -190,10 +185,8 @@
             }
         } catch (err) { alert("กล้องมีปัญหา: " + err); }
     }
-
     function stopScanner() { if (html5QrCode?.isScanning) html5QrCode.stop().then(() => { document.getElementById('startScanBtn').style.display = 'block'; document.getElementById('stopScanBtn').style.display = 'none'; }); }
     function handleScannedPoint(p) { document.getElementById('btnArea').style.display = 'grid'; document.querySelectorAll('.btn-checkpoint').forEach(b => b.style.display = 'none'); document.getElementById('btn' + p).style.display = 'block'; }
-    function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
 
     document.getElementById('regForm').onsubmit = async (e) => {
         e.preventDefault();
@@ -206,29 +199,18 @@
     };
 
     async function checkPoint(code) {
-        const bib = document.getElementById('scanBib').value.trim();
-        if (!bib) return alert('ระบุ BIB');
+        const bib = document.getElementById('scanBib').value.trim(); if (!bib) return alert('ระบุ BIB');
         showLoading(true);
         try {
-            // ดึงข้อมูลเพื่อเอาชื่อมาพูด
             const res = await fetch(SCRIPT_URL);
             const rows = await res.json();
             const runner = rows.find(r => String(r[2]).trim() === bib);
             const runnerName = runner ? runner[3] : "นักวิ่ง";
-
             await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: bib, end: code, distance: distances[code] }) });
-            
-            // ใช้เสียงทักทายแบบ Trainer ที่สุ่มคำพูด
-            const speechText = getEncouragement(runnerName, code);
-            speakTrainer(speechText);
-            
+            speakTrainer(getEncouragement(runnerName, code));
         } catch (e) { alert("บันทึกไม่สำเร็จ"); }
         showLoading(false);
     }
-
-    // fetchDataFromCloud, processRanking, loadMyStats ส่วนที่เหลือคงเดิมครับ
-    // ... (ก๊อปปี้ฟังก์ชันที่เหลือจากไฟล์เดิมของอาจารย์มาวางต่อได้เลย) ...
-</script>
 
     async function fetchDataFromCloud(filter = 'All') {
         showLoading(true);
@@ -314,6 +296,7 @@
 </script>
 </body>
 </html>
+
 
 
 
