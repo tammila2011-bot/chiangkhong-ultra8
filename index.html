@@ -8,106 +8,23 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        /* กำหนดโทนสีให้เข้ากับโลโก้สีทอง */
-        :root { 
-            --primary: #8e6d31; /* สีทองเข้ม */
-            --primary-light: #b59451; /* สีทองสว่าง */
-            --dark-bg: #1a1a1a; /* พื้นหลังเข้ม */
-            --success: #28a745; 
-            --danger: #dc3545; 
-        }
-        
-        body { 
-            background-color: var(--dark-bg); /* เปลี่ยนพื้นหลังเป็นสีเข้มเพื่อให้โลโก้ทองโดดเด่น */
-            color: #eee;
-            font-family: 'Prompt', sans-serif; 
-            min-height: 100vh; 
-        }
-        
-        /* สไตล์สำหรับ Header ที่ใส่โลโก้ */
-        .main-header {
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px 0;
-            border-bottom: 2px solid var(--primary);
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        /* ปรับขนาดโลโก้ */
-        .logo-img {
-            max-width: 80%; /* ขนาดโลโก้ในหน้าจอใหญ่ */
-            height: auto;
-            display: block;
-            margin: 0 auto;
-        }
-        
-        /* ปรับขนาดโลโก้สำหรับมือถือ */
-        @media (max-width: 768px) {
-            .logo-img {
-                max-width: 100%;
-            }
-        }
-
-        /* ปรับสไตล์ Card ให้เข้ากับธีมเข้ม */
-        .card { 
-            border: 1px solid #444; 
-            border-radius: 20px; 
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2); 
-            background: rgba(255, 255, 255, 0.05); /* การ์ดโปร่งแสงเล็กน้อย */
-            margin-bottom: 20px; 
-            color: #eee;
-        }
-        
-        /* ปรับสีตัวอักษรในฟอร์ม */
-        .form-control, .form-select {
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 1px solid #555;
-            color: #eee;
-        }
-        .form-control:focus, .form-select:focus {
-            background-color: rgba(255, 255, 255, 0.15);
-            border-color: var(--primary-light);
-            color: #eee;
-        }
-
-        .total-km-box { 
-            background: linear-gradient(45deg, var(--primary), var(--primary-light)); 
-            color: #1a1a1a; /* ตัวหนังสือบนแถบทองเป็นสีเข้ม */
-            border-radius: 20px; 
-            padding: 15px; 
-            text-align: center; 
-        }
-        
-        /* สไตล์สำหรับ Tab ให้ดูโมเดิร์น */
-        .nav-pills .nav-link {
-            color: #eee;
-            border-radius: 50px;
-            margin: 0 2px;
-            font-size: 0.9rem;
-        }
-        
-        .nav-pills .nav-link.active {
-            background-color: var(--primary);
-            color: #1a1a1a;
-            font-weight: 600;
-        }
-        
+        :root { --primary: #8e6d31; --primary-light: #b59451; --dark-bg: #1a1a1a; --success: #28a745; --danger: #dc3545; }
+        body { background-color: var(--dark-bg); color: #eee; font-family: 'Prompt', sans-serif; min-height: 100vh; }
+        .main-header { background: rgba(0, 0, 0, 0.8); padding: 20px 0; border-bottom: 2px solid var(--primary); text-align: center; margin-bottom: 30px; }
+        .logo-img { max-width: 80%; height: auto; display: block; margin: 0 auto; }
+        @media (max-width: 768px) { .logo-img { max-width: 100%; } }
+        .card { border: 1px solid #444; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); background: rgba(255, 255, 255, 0.05); margin-bottom: 20px; color: #eee; }
+        .form-control, .form-select { background-color: rgba(255, 255, 255, 0.1); border: 1px solid #555; color: #eee; }
+        .total-km-box { background: linear-gradient(45deg, var(--primary), var(--primary-light)); color: #1a1a1a; border-radius: 20px; padding: 15px; text-align: center; }
+        .nav-pills .nav-link { color: #eee; border-radius: 50px; margin: 0 2px; font-size: 0.9rem; }
+        .nav-pills .nav-link.active { background-color: var(--primary); color: #1a1a1a; font-weight: 600; }
         #reader { width: 100%; min-height: 280px; background: #000; border-radius: 15px; overflow: hidden; border: 2px solid var(--primary); }
         .btn-checkpoint { height: 65px; font-size: 1.1rem; font-weight: 600; border-radius: 15px; display: none; margin-bottom: 8px; }
         .btn-primary { background-color: var(--primary); border-color: var(--primary); color: #1a1a1a; font-weight: 600; }
-        .btn-primary:hover { background-color: var(--primary-light); border-color: var(--primary-light); color: #1a1a1a; }
-        
         .history-card { border-radius: 12px; border: 1px solid #444; background: rgba(255, 255, 255, 0.03); padding: 10px; margin-bottom: 8px; font-size: 0.85rem; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 9999; }
-        .status-badge { padding: 5px 15px; border-radius: 50px; font-weight: bold; font-size: 0.9rem; color: #1a1a1a; }
-        .total-km-box small { color: #1a1a1a; opacity: 0.8; }
-        
-        /* สีของป้าย Pace ให้ดูโดดเด่น */
-        #myPaceDisplay .badge {
-            background-color: var(--primary-light);
-            color: #1a1a1a;
-            font-weight: 600;
-        }
+        .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: white; margin-right: 10px; }
+        .dnf-text { color: var(--danger); font-weight: bold; border: 2px solid var(--danger); padding: 5px 15px; border-radius: 50px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -115,7 +32,7 @@
 
 <header class="main-header">
     <div class="container">
-        <img src="loco.png" alt="ULTRA 104 #8 - Chiang Khong" class="logo-img">
+        <img src="loco.png" alt="ULTRA 104 #8" class="logo-img">
     </div>
 </header>
 
@@ -146,12 +63,72 @@
                 </form>
             </div>
         </div>
+
+        <div class="tab-pane fade" id="tab-run">
+            <div class="card p-3 mx-auto" style="max-width: 500px;">
+                <input type="text" id="scanBib" class="form-control text-center mb-3 fw-bold" placeholder="ระบุ BIB">
+                <div id="reader" class="mb-3"></div>
+                <div class="d-grid gap-2 mb-3">
+                    <button id="startScanBtn" class="btn btn-primary btn-sm rounded-pill" onclick="startScanner()">📸 เปิดกล้อง</button>
+                    <button id="stopScanBtn" class="btn btn-outline-danger btn-sm rounded-pill" onclick="stopScanner()" style="display:none;">ปิดกล้อง</button>
+                </div>
+                <div id="btnArea" class="d-grid gap-2" style="display:none;">
+                    <button id="btnStart" class="btn btn-dark p-3 fw-bold btn-checkpoint" onclick="checkPoint('Start')">🚩 Start (กม.0)</button>
+                    <button id="btnCP1" class="btn btn-success p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP1')">📍 CP-1 (กม.7)</button>
+                    <button id="btnCP2" class="btn btn-success p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP2')">📍 CP-2 (กม.56)</button>
+                    <button id="btnCP3" class="btn btn-success p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP3')">📍 CP-3 (กม.72)</button>
+                    <button id="btnCP4" class="btn btn-success p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP4')">📍 CP-4 (กม.89)</button>
+                    <button id="btnCP5" class="btn btn-success p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP5')">📍 CP-5 (กม.103)</button>
+                    <button id="btnCP6" class="btn btn-danger p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP6')">🏁 Finish (กม.104)</button>
+                </div>
+            </div>
         </div>
+
+        <div class="tab-pane fade" id="tab-stat">
+            <div class="card p-3 mx-auto" style="max-width: 600px;">
+                <div class="total-km-box mb-3">
+                    <small>รวมระยะทางสะสม</small>
+                    <h2 class="fw-bold"><span id="grandTotalKm">0.00</span> กม.</h2>
+                </div>
+                <div class="d-flex flex-wrap gap-1 justify-content-center mb-3">
+                    <button class="btn btn-sm btn-outline-warning" onclick="fetchDataFromCloud('All')">ทั้งหมด</button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="fetchDataFromCloud('Solo-M')">ชายเดี่ยว</button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="fetchDataFromCloud('Solo-F')">หญิงเดี่ยว</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm">
+                        <thead><tr><th>#</th><th>BIB</th><th>ชื่อ</th><th class="text-end">เวลา/กม.</th></tr></thead>
+                        <tbody id="rankingBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-me">
+            <div class="card p-3 mx-auto text-center" style="max-width: 500px;">
+                <div class="input-group mb-3">
+                    <input type="text" id="myBibSearch" class="form-control text-center fw-bold" placeholder="ระบุ BIB">
+                    <button class="btn btn-primary" onclick="loadMyStats()">ดูผลงาน</button>
+                </div>
+                <div id="myResultArea" style="display:none;">
+                    <h4 id="myNameDisplay" class="fw-bold text-primary mb-1"></h4>
+                    <div id="myRankDisplay" class="mb-2 fw-bold text-success"></div>
+                    <div id="myStatusDisplay" class="mb-3"></div>
+                    <div id="myPaceBadge" class="mb-3"></div>
+                    <div class="progress mb-2" style="height:25px; border-radius:15px; background: #333;">
+                        <div id="myProgressBar" class="progress-bar bg-success" style="width: 0%"></div>
+                    </div>
+                    <div class="small fw-bold"><span id="myDistDisplay">0.00</span> / 104 กม.</div>
+                    <hr>
+                    <div id="myHistoryList" class="text-start"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // ** อย่าลืมใส่ URL ของอาจารย์ตรงนี้ครับ **
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPsGbONqxTdtxysAuRGQ1fdSuC-dmZAxXy06EFr87xNhIOoqsr8oDneeLCAMOFcesInw/exec";
     const distances = { 'Start': 0, 'CP1': 7, 'CP2': 56, 'CP3': 72, 'CP4': 89, 'CP5': 103, 'CP6': 104 };
     const pointNames = { 'Start': 'จุด Start', 'CP1': 'CP-1', 'CP2': 'CP-2', 'CP3': 'CP-3', 'CP4': 'CP-4', 'CP5': 'CP-5', 'CP6': 'Finish (กม.104)' };
@@ -159,7 +136,10 @@
 
     let html5QrCode;
 
-    // ส่วนของกล้องและเสียง (เหมือนเดิม)
+    function speak(t) { if ('speechSynthesis' in window) { const m = new SpeechSynthesisUtterance(t); m.lang = 'th-TH'; window.speechSynthesis.speak(m); } }
+    function unlockAudio() { speak("ระบบเสียงพร้อมทำงานค่ะ"); }
+    function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
+
     async function startScanner() {
         try {
             const cams = await Html5Qrcode.getCameras();
@@ -168,18 +148,22 @@
                 document.getElementById('stopScanBtn').style.display = 'block';
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                 await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-                    try { const url = new URL(text); const p = url.searchParams.get("point"); if (p && pointNames[p]) { speak("พบจุด " + pointNames[p]); handleScannedPoint(p); stopScanner(); } } catch(e) {}
+                    try { 
+                        const url = new URL(text); 
+                        const p = url.searchParams.get("point"); 
+                        if (p && pointNames[p]) { 
+                            speak("พบจุด " + pointNames[p]); 
+                            handleScannedPoint(p); 
+                            stopScanner(); 
+                        } 
+                    } catch(e) { alert("QR Code ไม่ถูกต้อง"); }
                 });
             }
         } catch (err) { alert("กล้องมีปัญหา: " + err); }
     }
     function stopScanner() { if (html5QrCode?.isScanning) html5QrCode.stop().then(() => { document.getElementById('startScanBtn').style.display = 'block'; document.getElementById('stopScanBtn').style.display = 'none'; }); }
     function handleScannedPoint(p) { document.getElementById('btnArea').style.display = 'grid'; document.querySelectorAll('.btn-checkpoint').forEach(b => b.style.display = 'none'); document.getElementById('btn' + p).style.display = 'block'; }
-    function speak(t) { if ('speechSynthesis' in window) { const m = new SpeechSynthesisUtterance(t); m.lang = 'th-TH'; window.speechSynthesis.speak(m); } }
-    function unlockAudio() { const m = new SpeechSynthesisUtterance('ระบบพร้อมบันทึกสถิติค่ะ'); m.lang = 'th-TH'; window.speechSynthesis.speak(m); }
-    function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
 
-    // ลงทะเบียนและบันทึกจุด
     document.getElementById('regForm').onsubmit = async (e) => {
         e.preventDefault();
         const data = { action: 'register', bib: document.getElementById('regBib').value.trim(), name: document.getElementById('regName').value.trim(), gender: document.getElementById('regGender').value, category: document.getElementById('regCategory').value };
@@ -197,14 +181,12 @@
         showLoading(false);
     }
 
-    // --- ส่วนจัดอันดับที่อาจารย์ต้องการ ---
     async function fetchDataFromCloud(filter = 'All') {
         showLoading(true);
         try {
             const res = await fetch(SCRIPT_URL);
             const rows = await res.json();
             const ranking = processRanking(rows, filter);
-            
             document.getElementById('grandTotalKm').innerText = ranking.grandTotal.toFixed(2);
             document.getElementById('rankingBody').innerHTML = ranking.list.map((r, i) => `
                 <tr>
@@ -231,7 +213,6 @@
                 grandTotal += parseFloat(r[5] || 0);
             }
         });
-
         let list = Object.keys(stats).map(bib => {
             const s = stats[bib];
             const maxDist = Math.max(...s.dists);
@@ -239,22 +220,14 @@
             const endT = s.times[s.points.indexOf('CP6')];
             let timeDiff = (startT && endT) ? (endT - startT) / (1000 * 60 * 60) : 999;
             const isFinish = s.points.includes('CP6') && s.points.includes('Start') && timeDiff <= LIMIT_HOURS;
-            
             return { bib, name: info[bib]?.name || 'นักวิ่ง', cat: info[bib]?.cat, gen: info[bib]?.gen, maxDist, time: timeDiff.toFixed(2), isFinish };
         });
-
-        // Filter
         if (filter === 'Solo-M') list = list.filter(r => r.cat === 'Solo' && r.gen === 'M');
         if (filter === 'Solo-F') list = list.filter(r => r.cat === 'Solo' && r.gen === 'F');
-        if (filter === 'Team') list = list.filter(r => r.cat !== 'Solo');
-
-        // เรียงลำดับ: Finisher มาก่อน (ตามเวลา), ตามด้วย DNF (ตามระยะทาง)
         list.sort((a,b) => a.isFinish === b.isFinish ? (a.isFinish ? a.time - b.time : b.maxDist - a.maxDist) : (b.isFinish - a.isFinish));
-        
         return { list, grandTotal };
     }
 
-    // --- ส่วนดูผลงานของฉัน (โชว์ Rank และ DNF Memorial) ---
     async function loadMyStats() {
         const bib = document.getElementById('myBibSearch').value.trim(); if(!bib) return;
         showLoading(true);
@@ -264,21 +237,12 @@
             const allRanks = processRanking(rows, 'All').list;
             const myRankIndex = allRanks.findIndex(r => r.bib === bib);
             const myData = allRanks[myRankIndex];
-            
             if(myData) {
                 const s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN');
-                let histArray = s.map(r => `<div class="history-card shadow-sm border-start border-primary border-4">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-success fw-bold">+${parseFloat(r[5]).toFixed(2)} กม.</span></div>`);
-                
+                let histArray = s.map(r => `<div class="history-card">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-warning">+${parseFloat(r[5]).toFixed(2)} กม.</span></div>`);
                 document.getElementById('myNameDisplay').innerText = myData.name;
                 document.getElementById('myRankDisplay').innerText = `อันดับรวม: ${myRankIndex + 1}`;
-                
-                if (myData.isFinish) {
-                    document.getElementById('myStatusDisplay').innerHTML = "🥇 <span class='fw-bold text-success'>OFFICIAL FINISHER</span>";
-                } else {
-                    document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text'>DNF (Keep Fighting!)</span><br><small class='text-muted'>ระยะทางคือความภูมิใจ ทุกก้าวคือการเรียนรู้</small>";
-                }
-
-                // คำนวณ Pace
+                document.getElementById('myStatusDisplay').innerHTML = myData.isFinish ? "🥇 <span class='text-success'>FINISHER</span>" : "<span class='dnf-text'>DNF (Keep Fighting!)</span>";
                 let paceText = "--:--";
                 if (myData.maxDist > 0) {
                     const sTime = new Date(s.find(r => r[7] === 'Start')?.[0]);
@@ -289,19 +253,19 @@
                         paceText = `${Math.floor(pace)}:${Math.round((pace%1)*60).toString().padStart(2,'0')} min/km`;
                     }
                 }
-                
-                document.getElementById('myPaceBadge').innerHTML = `<span class="badge bg-warning text-dark px-3 py-2">Pace เฉลี่ย: ${paceText}</span>`;
+                document.getElementById('myPaceBadge').innerHTML = `<span class="badge bg-warning text-dark">Pace เฉลี่ย: ${paceText}</span>`;
                 document.getElementById('myDistDisplay').innerText = myData.maxDist.toFixed(2);
                 document.getElementById('myProgressBar').style.width = (myData.maxDist/104*100) + '%';
                 document.getElementById('myHistoryList').innerHTML = histArray.reverse().join('');
                 document.getElementById('myResultArea').style.display = 'block';
-            } else { alert("ไม่พบข้อมูล BIB นี้ครับ"); }
+            } else { alert("ไม่พบข้อมูล BIB"); }
         } catch(e) { console.error(e); }
         showLoading(false);
     }
 </script>
 </body>
 </html>
+
 
 
 
