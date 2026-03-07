@@ -19,13 +19,13 @@
         .nav-pills .nav-link.active { background-color: var(--primary); color: #1a1a1a; font-weight: 600; }
         #reader { width: 100%; min-height: 280px; background: #000; border-radius: 15px; border: 2px solid var(--primary); }
         .btn-checkpoint { height: 65px; font-size: 1.1rem; font-weight: 600; border-radius: 15px; display: none; margin-bottom: 8px; }
+        .live-status { color: #ffc107; font-weight: bold; border: 2px solid #ffc107; padding: 5px 25px; border-radius: 50px; display: inline-block; animation: blink 1.5s infinite; background: rgba(255, 193, 7, 0.1); }
+        @keyframes blink { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.02); } 100% { opacity: 1; transform: scale(1); } }
         .rank-badge { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: #1a1a1a; margin-right: 8px; font-size: 0.8rem; }
-        .live-status { color: #ffc107; font-weight: bold; border: 2px solid #ffc107; padding: 5px 15px; border-radius: 50px; display: inline-block; animation: blink 2s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-<div id="loading" class="loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;"><div class="spinner-border text-primary"></div></div>
+<div id="loading" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;"><div class="spinner-border text-primary"></div></div>
 
 <header class="main-header">
     <div class="container"><img src="loco.png" alt="ULTRA 104 #8" class="logo-img"></div>
@@ -146,14 +146,17 @@
     function unlockAudio() { speakTrainer("ระบบเสียงเทรนเนอร์ พร้อมดูแลนักวิ่งทุกคนแล้วค่ะ สู้ๆ นะคะ"); }
     function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
 
-    // ปรับปรุงฟังก์ชันกล้องให้รองรับ iOS/Safari
     async function startScanner() {
         try {
             document.getElementById('startScanBtn').style.display = 'none';
             document.getElementById('stopScanBtn').style.display = 'block';
             if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
             
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] 
+            };
             await html5QrCode.start({ facingMode: "environment" }, config, (text) => {
                 try {
                     const url = new URL(text);
@@ -207,7 +210,6 @@
             const ranking = processRanking(rows, filter);
             document.getElementById('grandTotalKm').innerText = ranking.grandTotal.toFixed(2);
             
-            // แสดงสูงสุด 30 อันดับสำหรับแต่ละประเภท, แสดงทั้งหมดสำหรับ "ทั้งหมด"
             const displayLimit = (filter === 'All') ? ranking.list.length : 30;
             
             document.getElementById('rankingBody').innerHTML = ranking.list.slice(0, displayLimit).map((r, i) => `
@@ -243,7 +245,7 @@
             const endT = s.times[s.points.indexOf('CP6')];
             let timeDiff = (startT && endT) ? (endT - startT) / (1000 * 60 * 60) : 999;
             const isFinish = s.points.includes('CP6') && s.points.includes('Start') && timeDiff <= LIMIT_HOURS;
-            return { bib, name: info[bib]?.name || 'นักวิ่ง', cat: info[bib]?.cat, gen: info[bib]?.gen, maxDist, time: timeDiff.toFixed(2), isFinish, lastUpdate: s.times[s.times.length-1] };
+            return { bib, name: info[bib]?.name || 'นักวิ่ง', cat: info[bib]?.cat, gen: info[bib]?.gen, maxDist, time: timeDiff.toFixed(2), isFinish };
         });
 
         if (filter === 'Solo-M') list = list.filter(r => r.cat === 'Solo' && r.gen === 'M');
@@ -273,25 +275,26 @@
                 document.getElementById('myNameDisplay').innerText = myData.name;
                 document.getElementById('myRankDisplay').innerText = `อันดับรวม: ${myRankIndex + 1}`;
                 
-                // --- Logic สถานะการวิ่ง (แก้ปัญหา DNF) ---
-                const startT = s.find(r => r[7] === 'Start')?.[0];
+                // --- Logic สถานะการวิ่งฉบับแก้ไข (Fix Live Status) ---
+                const eventStartDate = s.length > 0 ? new Date(s[0][0]) : null;
                 const now = new Date();
-                const hoursSinceStart = startT ? (now - new Date(startT)) / (1000 * 60 * 60) : 0;
+                const diffHours = eventStartDate ? (now - eventStartDate) / (1000 * 60 * 60) : 0;
 
                 if (myData.isFinish) {
                     document.getElementById('myStatusDisplay').innerHTML = "🥇 <span class='text-success'>OFFICIAL FINISHER</span>";
-                } else if (hoursSinceStart <= LIMIT_HOURS && startT) {
+                } else if (diffHours < LIMIT_HOURS || s.length > 0) {
+                    // หากมีการสแกนอย่างน้อย 1 จุด ให้ถือว่ากำลัง LIVE อยู่ก่อนจนกว่าจะยืนยัน DNF
                     document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
                 } else {
                     document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text'>DNF (Keep Fighting!)</span>";
                 }
 
-                // --- คำนวณ Pace ---
+                // --- คำนวณ Pace ฉบับแก้ไข (Fix สมศรี 1004) ---
                 let paceText = "--:--";
-                const firstPoint = s[0]; // จุดแรกที่บันทึก
-                const lastPoint = s[s.length-1]; // จุดล่าสุด
-                if (firstPoint && lastPoint && myData.maxDist > 0) {
-                    let mins = (new Date(lastPoint[0]) - new Date(firstPoint[0])) / (1000 * 60);
+                if (s.length > 0 && myData.maxDist > 0) {
+                    const firstT = new Date(s[s.length-1][0]); // จุดแรกที่บันทึก
+                    const lastT = new Date(s[0][0]); // จุดล่าสุด
+                    let mins = (lastT - firstT) / (1000 * 60);
                     if (mins > 0) {
                         let pace = mins / myData.maxDist;
                         paceText = `${Math.floor(pace)}:${Math.round((pace%1)*60).toString().padStart(2,'0')} min/km`;
@@ -301,7 +304,7 @@
                 document.getElementById('myPaceBadge').innerHTML = `<span class="badge bg-warning text-dark">Pace เฉลี่ย: ${paceText}</span>`;
                 document.getElementById('myDistDisplay').innerText = myData.maxDist.toFixed(2);
                 document.getElementById('myProgressBar').style.width = (myData.maxDist/104*100) + '%';
-                document.getElementById('myHistoryList').innerHTML = histArray.reverse().join('');
+                document.getElementById('myHistoryList').innerHTML = histArray.join('');
                 document.getElementById('myResultArea').style.display = 'block';
             } else { alert("ไม่พบข้อมูล BIB"); }
         } catch(e) { console.error(e); }
@@ -310,6 +313,7 @@
 </script>
 </body>
 </html>
+
 
 
 
