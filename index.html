@@ -3,41 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chiang Khong Ultra 2026 - Official System</title>
+    <title>ULTRA 104 #8 - Official System</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --primary: #8e6d31; --primary-light: #b59451; --dark-bg: #1a1a1a; --success: #28a745; --danger: #dc3545; }
         body { background-color: var(--dark-bg); color: #eee; font-family: 'Prompt', sans-serif; min-height: 100vh; }
-        .main-header { background: rgba(0, 0, 0, 0.8); padding: 20px 0; border-bottom: 2px solid var(--primary); text-align: center; margin-bottom: 30px; }
+        .main-header { background: rgba(0, 0, 0, 0.8); padding: 20px 0; border-bottom: 2px solid var(--primary); text-align: center; margin-bottom: 20px; }
         .logo-img { max-width: 80%; height: auto; display: block; margin: 0 auto; }
         @media (max-width: 768px) { .logo-img { max-width: 100%; } }
-        .card { border: 1px solid #444; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); background: rgba(255, 255, 255, 0.05); margin-bottom: 20px; color: #eee; }
-        .form-control, .form-select { background-color: rgba(255, 255, 255, 0.1); border: 1px solid #555; color: #eee; }
+        .card { border: 1px solid #444; border-radius: 20px; background: rgba(255, 255, 255, 0.05); margin-bottom: 15px; color: #eee; }
         .total-km-box { background: linear-gradient(45deg, var(--primary), var(--primary-light)); color: #1a1a1a; border-radius: 20px; padding: 15px; text-align: center; }
-        .nav-pills .nav-link { color: #eee; border-radius: 50px; margin: 0 2px; font-size: 0.9rem; }
+        .nav-pills .nav-link { color: #eee; border-radius: 50px; margin: 0 2px; font-size: 0.85rem; padding: 8px 15px; }
         .nav-pills .nav-link.active { background-color: var(--primary); color: #1a1a1a; font-weight: 600; }
-        #reader { width: 100%; min-height: 280px; background: #000; border-radius: 15px; overflow: hidden; border: 2px solid var(--primary); }
+        #reader { width: 100%; min-height: 280px; background: #000; border-radius: 15px; border: 2px solid var(--primary); }
         .btn-checkpoint { height: 65px; font-size: 1.1rem; font-weight: 600; border-radius: 15px; display: none; margin-bottom: 8px; }
-        .btn-primary { background-color: var(--primary); border-color: var(--primary); color: #1a1a1a; font-weight: 600; }
-        .history-card { border-radius: 12px; border: 1px solid #444; background: rgba(255, 255, 255, 0.03); padding: 10px; margin-bottom: 8px; font-size: 0.85rem; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 9999; }
-        .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: white; margin-right: 10px; }
-        .dnf-text { color: var(--danger); font-weight: bold; border: 2px solid var(--danger); padding: 5px 15px; border-radius: 50px; display: inline-block; }
+        .rank-badge { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: #1a1a1a; margin-right: 8px; font-size: 0.8rem; }
+        .live-status { color: #ffc107; font-weight: bold; border: 2px solid #ffc107; padding: 5px 15px; border-radius: 50px; display: inline-block; animation: blink 2s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-<div id="loading" class="loading-overlay"><div class="spinner-border text-primary"></div></div>
+<div id="loading" class="loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;"><div class="spinner-border text-primary"></div></div>
 
 <header class="main-header">
-    <div class="container">
-        <img src="loco.png" alt="ULTRA 104 #8" class="logo-img">
-    </div>
+    <div class="container"><img src="loco.png" alt="ULTRA 104 #8" class="logo-img"></div>
 </header>
 
-<div class="container py-3">
-    <div class="text-center mb-4">
+<div class="container py-2">
+    <div class="text-center mb-3">
         <button id="voiceBtn" class="btn btn-outline-warning btn-sm rounded-pill px-4" onclick="unlockAudio()">🔊 เปิดระบบเสียงแจ้งเตือน</button>
     </div>
     
@@ -51,13 +46,14 @@
     <div class="tab-content">
         <div class="tab-pane fade show active" id="tab-reg">
             <div class="card p-4 mx-auto" style="max-width: 400px;">
-                <h6 class="fw-bold text-center text-primary mb-3">ลงทะเบียนผู้ร่วมงาน</h6>
                 <form id="regForm">
                     <div class="mb-3"><label class="small">เลข BIB</label><input type="text" id="regBib" class="form-control" required></div>
                     <div class="mb-3"><label class="small">ชื่อ-นามสกุล</label><input type="text" id="regName" class="form-control" required></div>
                     <div class="row">
                         <div class="col-6 mb-3"><label class="small">เพศ</label><select id="regGender" class="form-select"><option value="M">ชาย</option><option value="F">หญิง</option></select></div>
-                        <div class="col-6 mb-3"><label class="small">ประเภท</label><select id="regCategory" class="form-select"><option value="Solo">เดี่ยว</option><option value="Couple">ผลัด 2</option><option value="Team3">ผลัด 3</option><option value="Team10">ผลัด 10</option></select></div>
+                        <div class="col-6 mb-3"><label class="small">ประเภท</label><select id="regCategory" class="form-select">
+                            <option value="Solo">เดี่ยว</option><option value="Couple">ผลัด 2</option><option value="Team3">ผลัด 3</option><option value="Team10">ผลัด 10</option>
+                        </select></div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100 fw-bold">บันทึกลงทะเบียน</button>
                 </form>
@@ -87,17 +83,20 @@
         <div class="tab-pane fade" id="tab-stat">
             <div class="card p-3 mx-auto" style="max-width: 600px;">
                 <div class="total-km-box mb-3">
-                    <small>รวมระยะทางสะสม</small>
+                    <small>ระยะทางสะสมรวม</small>
                     <h2 class="fw-bold"><span id="grandTotalKm">0.00</span> กม.</h2>
                 </div>
                 <div class="d-flex flex-wrap gap-1 justify-content-center mb-3">
-                    <button class="btn btn-sm btn-outline-warning" onclick="fetchDataFromCloud('All')">ทั้งหมด</button>
-                    <button class="btn btn-sm btn-outline-warning" onclick="fetchDataFromCloud('Solo-M')">ชายเดี่ยว</button>
-                    <button class="btn btn-sm btn-outline-warning" onclick="fetchDataFromCloud('Solo-F')">หญิงเดี่ยว</button>
+                    <button class="btn btn-xs btn-outline-warning" onclick="fetchDataFromCloud('All')">ทั้งหมด</button>
+                    <button class="btn btn-xs btn-outline-warning" onclick="fetchDataFromCloud('Solo-M')">ชายเดี่ยว</button>
+                    <button class="btn btn-xs btn-outline-warning" onclick="fetchDataFromCloud('Solo-F')">หญิงเดี่ยว</button>
+                    <button class="btn btn-xs btn-outline-info" onclick="fetchDataFromCloud('Couple')">ผลัด 2</button>
+                    <button class="btn btn-xs btn-outline-info" onclick="fetchDataFromCloud('Team3')">ผลัด 3</button>
+                    <button class="btn btn-xs btn-outline-info" onclick="fetchDataFromCloud('Team10')">ผลัด 10</button>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-dark table-sm">
-                        <thead><tr><th>#</th><th>BIB</th><th>ชื่อ</th><th class="text-end">เวลา/กม.</th></tr></thead>
+                    <table class="table table-dark table-sm" style="font-size:0.85rem;">
+                        <thead><tr><th>#</th><th>BIB</th><th>ชื่อ</th><th class="text-end">เวลา/ระยะ</th></tr></thead>
                         <tbody id="rankingBody"></tbody>
                     </table>
                 </div>
@@ -140,51 +139,39 @@
         if (!('speechSynthesis' in window)) return;
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'th-TH';
-        utterance.rate = 1.0; 
-        utterance.pitch = 1.1; 
+        utterance.lang = 'th-TH'; utterance.rate = 1.0; utterance.pitch = 1.1;
         window.speechSynthesis.speak(utterance);
     }
 
     function unlockAudio() { speakTrainer("ระบบเสียงเทรนเนอร์ พร้อมดูแลนักวิ่งทุกคนแล้วค่ะ สู้ๆ นะคะ"); }
     function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
 
-    function getEncouragement(name, pointCode) {
-        const quotes = {
-            'Start': ["ขอให้เป็นวันที่ยอดเยี่ยมนะครับ", "เริ่มต้นการเดินทางที่ยิ่งใหญ่ได้แล้ว", "ลุยเลยครับ เราเชื่อว่าคุณทำได้"],
-            'Mid': ["สุดยอดมากครับ", "ร่างกายอาจจะเหนื่อยแต่ใจต้องสู้นะ", "ไปต่อครับ อีกนิดเดียวจะถึงจุดพักแล้ว", "คุณคือความภูมิใจของเชียงของครับ"],
-            'Near': ["ใจสู้มากครับ อีกอึดใจเดียวเท่านั้น", "เห็นแสงสว่างที่เส้นชัยหรือยัง", "ประวัติศาสตร์กำลังจะจดจำชื่อคุณครับ"],
-            'CP6': ["ยินดีด้วยอย่างยิ่งครับ คุณทำสำเร็จแล้ว", "คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตรครับ", "พักผ่อนให้เต็มที่นะครับ คุณเก่งที่สุดเลย"]
-        };
-        let cat = 'Mid';
-        if (pointCode === 'Start') cat = 'Start';
-        else if (pointCode === 'CP5') cat = 'Near';
-        else if (pointCode === 'CP6') cat = 'CP6';
-        const rand = quotes[cat][Math.floor(Math.random() * quotes[cat].length)];
-        return `สวัสดีครับคุณ ${name}. บันทึกจุด ${pointNames[pointCode]} เรียบร้อย. ${rand}. สู้ๆ นะครับ!`;
-    }
-
+    // ปรับปรุงฟังก์ชันกล้องให้รองรับ iOS/Safari
     async function startScanner() {
         try {
-            const cams = await Html5Qrcode.getCameras();
-            if (cams.length > 0) {
-                document.getElementById('startScanBtn').style.display = 'none';
-                document.getElementById('stopScanBtn').style.display = 'block';
-                if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-                await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-                    try { 
-                        const url = new URL(text); 
-                        const p = url.searchParams.get("point"); 
-                        if (p && pointNames[p]) { 
-                            speakTrainer("พบจุด " + pointNames[p]); 
-                            handleScannedPoint(p); 
-                            stopScanner(); 
-                        } 
-                    } catch(e) { alert("QR Code ไม่ถูกต้อง"); }
-                });
-            }
-        } catch (err) { alert("กล้องมีปัญหา: " + err); }
+            document.getElementById('startScanBtn').style.display = 'none';
+            document.getElementById('stopScanBtn').style.display = 'block';
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            await html5QrCode.start({ facingMode: "environment" }, config, (text) => {
+                try {
+                    const url = new URL(text);
+                    const p = url.searchParams.get("point");
+                    if (p && pointNames[p]) {
+                        speakTrainer("พบจุด " + pointNames[p]);
+                        handleScannedPoint(p);
+                        stopScanner();
+                    }
+                } catch(e) { console.error("Invalid QR Content"); }
+            });
+        } catch (err) { 
+            alert("ไม่สามารถเข้าถึงกล้องได้: " + err);
+            document.getElementById('startScanBtn').style.display = 'block';
+            document.getElementById('stopScanBtn').style.display = 'none';
+        }
     }
+
     function stopScanner() { if (html5QrCode?.isScanning) html5QrCode.stop().then(() => { document.getElementById('startScanBtn').style.display = 'block'; document.getElementById('stopScanBtn').style.display = 'none'; }); }
     function handleScannedPoint(p) { document.getElementById('btnArea').style.display = 'grid'; document.querySelectorAll('.btn-checkpoint').forEach(b => b.style.display = 'none'); document.getElementById('btn' + p).style.display = 'block'; }
 
@@ -194,7 +181,7 @@
         const data = { action: 'register', bib: document.getElementById('regBib').value.trim(), name: name, gender: document.getElementById('regGender').value, category: document.getElementById('regCategory').value };
         showLoading(true);
         await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-        speakTrainer("ลงทะเบียนคุณ " + name + " สำเร็จแล้วค่ะ ขอให้สนุกกับการวิ่งนะคะ");
+        speakTrainer("ลงทะเบียนสำเร็จแล้วค่ะ คุณ " + name + " ลุยเลย!");
         showLoading(false);
     };
 
@@ -205,9 +192,9 @@
             const res = await fetch(SCRIPT_URL);
             const rows = await res.json();
             const runner = rows.find(r => String(r[2]).trim() === bib);
-            const runnerName = runner ? runner[3] : "นักวิ่ง";
+            const name = runner ? runner[3] : "นักวิ่ง";
             await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: bib, end: code, distance: distances[code] }) });
-            speakTrainer(getEncouragement(runnerName, code));
+            speakTrainer(`สวัสดีครับคุณ ${name}. บันทึกจุด ${pointNames[code]} เรียบร้อย. สู้ๆ นะครับ!`);
         } catch (e) { alert("บันทึกไม่สำเร็จ"); }
         showLoading(false);
     }
@@ -219,7 +206,11 @@
             const rows = await res.json();
             const ranking = processRanking(rows, filter);
             document.getElementById('grandTotalKm').innerText = ranking.grandTotal.toFixed(2);
-            document.getElementById('rankingBody').innerHTML = ranking.list.map((r, i) => `
+            
+            // แสดงสูงสุด 30 อันดับสำหรับแต่ละประเภท, แสดงทั้งหมดสำหรับ "ทั้งหมด"
+            const displayLimit = (filter === 'All') ? ranking.list.length : 30;
+            
+            document.getElementById('rankingBody').innerHTML = ranking.list.slice(0, displayLimit).map((r, i) => `
                 <tr>
                     <td><span class="rank-badge" style="background:${i<3?['#FFD700','#C0C0C0','#CD7F32'][i]:'#6c757d'}">${i+1}</span></td>
                     <td>${r.bib}</td>
@@ -244,6 +235,7 @@
                 grandTotal += parseFloat(r[5] || 0);
             }
         });
+
         let list = Object.keys(stats).map(bib => {
             const s = stats[bib];
             const maxDist = Math.max(...s.dists);
@@ -251,10 +243,15 @@
             const endT = s.times[s.points.indexOf('CP6')];
             let timeDiff = (startT && endT) ? (endT - startT) / (1000 * 60 * 60) : 999;
             const isFinish = s.points.includes('CP6') && s.points.includes('Start') && timeDiff <= LIMIT_HOURS;
-            return { bib, name: info[bib]?.name || 'นักวิ่ง', cat: info[bib]?.cat, gen: info[bib]?.gen, maxDist, time: timeDiff.toFixed(2), isFinish };
+            return { bib, name: info[bib]?.name || 'นักวิ่ง', cat: info[bib]?.cat, gen: info[bib]?.gen, maxDist, time: timeDiff.toFixed(2), isFinish, lastUpdate: s.times[s.times.length-1] };
         });
+
         if (filter === 'Solo-M') list = list.filter(r => r.cat === 'Solo' && r.gen === 'M');
         if (filter === 'Solo-F') list = list.filter(r => r.cat === 'Solo' && r.gen === 'F');
+        if (filter === 'Couple') list = list.filter(r => r.cat === 'Couple');
+        if (filter === 'Team3') list = list.filter(r => r.cat === 'Team3');
+        if (filter === 'Team10') list = list.filter(r => r.cat === 'Team10');
+
         list.sort((a,b) => a.isFinish === b.isFinish ? (a.isFinish ? a.time - b.time : b.maxDist - a.maxDist) : (b.isFinish - a.isFinish));
         return { list, grandTotal };
     }
@@ -268,22 +265,39 @@
             const allRanks = processRanking(rows, 'All').list;
             const myRankIndex = allRanks.findIndex(r => r.bib === bib);
             const myData = allRanks[myRankIndex];
+
             if(myData) {
                 const s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN');
                 let histArray = s.map(r => `<div class="history-card">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-warning">+${parseFloat(r[5]).toFixed(2)} กม.</span></div>`);
+                
                 document.getElementById('myNameDisplay').innerText = myData.name;
                 document.getElementById('myRankDisplay').innerText = `อันดับรวม: ${myRankIndex + 1}`;
-                document.getElementById('myStatusDisplay').innerHTML = myData.isFinish ? "🥇 <span class='text-success'>FINISHER</span>" : "<span class='dnf-text'>DNF (Keep Fighting!)</span>";
+                
+                // --- Logic สถานะการวิ่ง (แก้ปัญหา DNF) ---
+                const startT = s.find(r => r[7] === 'Start')?.[0];
+                const now = new Date();
+                const hoursSinceStart = startT ? (now - new Date(startT)) / (1000 * 60 * 60) : 0;
+
+                if (myData.isFinish) {
+                    document.getElementById('myStatusDisplay').innerHTML = "🥇 <span class='text-success'>OFFICIAL FINISHER</span>";
+                } else if (hoursSinceStart <= LIMIT_HOURS && startT) {
+                    document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
+                } else {
+                    document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text'>DNF (Keep Fighting!)</span>";
+                }
+
+                // --- คำนวณ Pace ---
                 let paceText = "--:--";
-                if (myData.maxDist > 0) {
-                    const sTime = new Date(s.find(r => r[7] === 'Start')?.[0]);
-                    const lTime = new Date(s[s.length-1][0]);
-                    if (sTime && lTime > sTime) {
-                        let mins = (lTime - sTime) / (1000 * 60);
+                const firstPoint = s[0]; // จุดแรกที่บันทึก
+                const lastPoint = s[s.length-1]; // จุดล่าสุด
+                if (firstPoint && lastPoint && myData.maxDist > 0) {
+                    let mins = (new Date(lastPoint[0]) - new Date(firstPoint[0])) / (1000 * 60);
+                    if (mins > 0) {
                         let pace = mins / myData.maxDist;
                         paceText = `${Math.floor(pace)}:${Math.round((pace%1)*60).toString().padStart(2,'0')} min/km`;
                     }
                 }
+                
                 document.getElementById('myPaceBadge').innerHTML = `<span class="badge bg-warning text-dark">Pace เฉลี่ย: ${paceText}</span>`;
                 document.getElementById('myDistDisplay').innerText = myData.maxDist.toFixed(2);
                 document.getElementById('myProgressBar').style.width = (myData.maxDist/104*100) + '%';
@@ -296,6 +310,7 @@
 </script>
 </body>
 </html>
+
 
 
 
