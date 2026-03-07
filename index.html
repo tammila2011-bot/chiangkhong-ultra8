@@ -3,31 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chiang Khong Ultra 2026 - Master System</title>
+    <title>Chiang Khong Ultra 2026 - Official System</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --primary: #6f42c1; --success: #28a745; --danger: #dc3545; --warning: #ffc107; }
-        body { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); font-family: 'Prompt', sans-serif; min-height: 100vh; }
-        .card { border: none; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.05); background: rgba(255, 255, 255, 0.95); margin-bottom: 20px; }
-        .total-km-box { background: linear-gradient(45deg, #6f42c1, #e91e63); color: white; border-radius: 20px; padding: 15px; text-align: center; }
-        #reader { width: 100%; min-height: 280px; background: #000; border-radius: 15px; overflow: hidden; }
+        /* กำหนดโทนสีให้เข้ากับโลโก้สีทอง */
+        :root { 
+            --primary: #8e6d31; /* สีทองเข้ม */
+            --primary-light: #b59451; /* สีทองสว่าง */
+            --dark-bg: #1a1a1a; /* พื้นหลังเข้ม */
+            --success: #28a745; 
+            --danger: #dc3545; 
+        }
+        
+        body { 
+            background-color: var(--dark-bg); /* เปลี่ยนพื้นหลังเป็นสีเข้มเพื่อให้โลโก้ทองโดดเด่น */
+            color: #eee;
+            font-family: 'Prompt', sans-serif; 
+            min-height: 100vh; 
+        }
+        
+        /* สไตล์สำหรับ Header ที่ใส่โลโก้ */
+        .main-header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px 0;
+            border-bottom: 2px solid var(--primary);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        /* ปรับขนาดโลโก้ */
+        .logo-img {
+            max-width: 80%; /* ขนาดโลโก้ในหน้าจอใหญ่ */
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        /* ปรับขนาดโลโก้สำหรับมือถือ */
+        @media (max-width: 768px) {
+            .logo-img {
+                max-width: 100%;
+            }
+        }
+
+        /* ปรับสไตล์ Card ให้เข้ากับธีมเข้ม */
+        .card { 
+            border: 1px solid #444; 
+            border-radius: 20px; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2); 
+            background: rgba(255, 255, 255, 0.05); /* การ์ดโปร่งแสงเล็กน้อย */
+            margin-bottom: 20px; 
+            color: #eee;
+        }
+        
+        /* ปรับสีตัวอักษรในฟอร์ม */
+        .form-control, .form-select {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            color: #eee;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-color: var(--primary-light);
+            color: #eee;
+        }
+
+        .total-km-box { 
+            background: linear-gradient(45deg, var(--primary), var(--primary-light)); 
+            color: #1a1a1a; /* ตัวหนังสือบนแถบทองเป็นสีเข้ม */
+            border-radius: 20px; 
+            padding: 15px; 
+            text-align: center; 
+        }
+        
+        /* สไตล์สำหรับ Tab ให้ดูโมเดิร์น */
+        .nav-pills .nav-link {
+            color: #eee;
+            border-radius: 50px;
+            margin: 0 2px;
+            font-size: 0.9rem;
+        }
+        
+        .nav-pills .nav-link.active {
+            background-color: var(--primary);
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+        
+        #reader { width: 100%; min-height: 280px; background: #000; border-radius: 15px; overflow: hidden; border: 2px solid var(--primary); }
         .btn-checkpoint { height: 65px; font-size: 1.1rem; font-weight: 600; border-radius: 15px; display: none; margin-bottom: 8px; }
-        .history-card { border-radius: 12px; border: 1px solid #eee; background: #fff; padding: 10px; margin-bottom: 8px; font-size: 0.85rem; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: none; justify-content: center; align-items: center; z-index: 9999; }
-        .rank-badge { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: white; margin-right: 10px; }
-        .dnf-text { color: var(--danger); font-weight: bold; border: 2px solid var(--danger); padding: 5px 15px; border-radius: 50px; display: inline-block; }
+        .btn-primary { background-color: var(--primary); border-color: var(--primary); color: #1a1a1a; font-weight: 600; }
+        .btn-primary:hover { background-color: var(--primary-light); border-color: var(--primary-light); color: #1a1a1a; }
+        
+        .history-card { border-radius: 12px; border: 1px solid #444; background: rgba(255, 255, 255, 0.03); padding: 10px; margin-bottom: 8px; font-size: 0.85rem; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 9999; }
+        .status-badge { padding: 5px 15px; border-radius: 50px; font-weight: bold; font-size: 0.9rem; color: #1a1a1a; }
+        .total-km-box small { color: #1a1a1a; opacity: 0.8; }
+        
+        /* สีของป้าย Pace ให้ดูโดดเด่น */
+        #myPaceDisplay .badge {
+            background-color: var(--primary-light);
+            color: #1a1a1a;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
 <div id="loading" class="loading-overlay"><div class="spinner-border text-primary"></div></div>
+
+<header class="main-header">
+    <div class="container">
+        <img src="loco.png" alt="ULTRA 104 #8 - Chiang Khong" class="logo-img">
+    </div>
+</header>
+
 <div class="container py-3">
-    <div class="text-center mb-3">
-        <button id="voiceBtn" class="btn btn-outline-primary btn-sm rounded-pill px-4" onclick="unlockAudio()">🔊 เปิดระบบเสียงแจ้งเตือน</button>
+    <div class="text-center mb-4">
+        <button id="voiceBtn" class="btn btn-outline-warning btn-sm rounded-pill px-4" onclick="unlockAudio()">🔊 เปิดระบบเสียงแจ้งเตือน</button>
     </div>
     
-    <ul class="nav nav-pills nav-fill mb-3 bg-white p-1 rounded-pill shadow-sm" id="pills-tab" role="tablist">
+    <ul class="nav nav-pills nav-fill mb-3 bg-dark p-1 rounded-pill shadow-sm" id="pills-tab" role="tablist">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-reg">1.ลงทะเบียน</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-run">2.สแกนจุด</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-stat" onclick="fetchDataFromCloud()">3.อันดับ</button></li>
@@ -37,7 +134,7 @@
     <div class="tab-content">
         <div class="tab-pane fade show active" id="tab-reg">
             <div class="card p-4 mx-auto" style="max-width: 400px;">
-                <h6 class="fw-bold text-center text-primary mb-3">ลงทะเบียน Ultra 104 #8</h6>
+                <h6 class="fw-bold text-center text-primary mb-3">ลงทะเบียนผู้ร่วมงาน</h6>
                 <form id="regForm">
                     <div class="mb-3"><label class="small">เลข BIB</label><input type="text" id="regBib" class="form-control" required></div>
                     <div class="mb-3"><label class="small">ชื่อ-นามสกุล</label><input type="text" id="regName" class="form-control" required></div>
@@ -49,73 +146,14 @@
                 </form>
             </div>
         </div>
-
-        <div class="tab-pane fade" id="tab-run">
-            <div class="card p-3 mx-auto" style="max-width: 500px;">
-                <input type="text" id="scanBib" class="form-control text-center mb-3 border-primary fw-bold" placeholder="ระบุ BIB">
-                <div id="reader" class="mb-3"></div>
-                <div class="d-grid gap-2 mb-3">
-                    <button id="startScanBtn" class="btn btn-dark btn-sm rounded-pill" onclick="startScanner()">📸 เปิดกล้อง</button>
-                    <button id="stopScanBtn" class="btn btn-outline-danger btn-sm rounded-pill" onclick="stopScanner()" style="display:none;">ปิดกล้อง</button>
-                </div>
-                <div id="btnArea" class="d-grid gap-2" style="display:none;">
-                    <button id="btnStart" class="btn btn-dark p-3 fw-bold btn-checkpoint" onclick="checkPoint('Start')">🚩 Start (กม.0)</button>
-                    <button id="btnCP1" class="btn btn-success p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP1')">📍 CP-1 (กม.7)</button>
-                    <button id="btnCP2" class="btn btn-success p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP2')">📍 CP-2 (กม.56)</button>
-                    <button id="btnCP3" class="btn btn-success p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP3')">📍 CP-3 (กม.72)</button>
-                    <button id="btnCP4" class="btn btn-success p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP4')">📍 CP-4 (กม.89)</button>
-                    <button id="btnCP5" class="btn btn-success p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP5')">📍 CP-5 (กม.103)</button>
-                    <button id="btnCP6" class="btn btn-danger p-3 fw-bold btn-checkpoint" onclick="checkPoint('CP6')">🏁 Finish (กม.104)</button>
-                </div>
-            </div>
         </div>
-
-        <div class="tab-pane fade" id="tab-stat">
-            <div class="card p-3 mx-auto" style="max-width: 600px;">
-                <div class="total-km-box mb-3">
-                    <small>รวมระยะทางสะสม (รวมคน DNF)</small>
-                    <h2 class="fw-bold"><span id="grandTotalKm">0.00</span> กม.</h2>
-                </div>
-                <div class="d-flex flex-wrap gap-1 justify-content-center mb-3">
-                    <button class="btn btn-sm btn-outline-primary active" onclick="fetchDataFromCloud('All')">ทั้งหมด</button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="fetchDataFromCloud('Solo-M')">ชายเดี่ยว</button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="fetchDataFromCloud('Solo-F')">หญิงเดี่ยว</button>
-                    <button class="btn btn-sm btn-outline-success" onclick="fetchDataFromCloud('Team')">ทีมผลัด</button>
-                </div>
-                <div id="rankingTable" class="table-responsive">
-                    <table class="table table-sm">
-                        <thead><tr><th>#</th><th>BIB</th><th>ชื่อ</th><th class="text-end">เวลา/กม.</th></tr></thead>
-                        <tbody id="rankingBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="tab-me">
-            <div class="card p-3 mx-auto text-center" style="max-width: 500px;">
-                <div class="input-group mb-3">
-                    <input type="text" id="myBibSearch" class="form-control text-center fw-bold" placeholder="ระบุ BIB">
-                    <button class="btn btn-primary" onclick="loadMyStats()">ดูผลงาน</button>
-                </div>
-                <div id="myResultArea" style="display:none;">
-                    <h4 id="myNameDisplay" class="fw-bold text-primary mb-1"></h4>
-                    <div id="myRankDisplay" class="mb-2 fw-bold text-success"></div>
-                    <div id="myStatusDisplay" class="mb-3"></div>
-                    <div id="myPaceBadge" class="mb-3"></div>
-                    <div class="progress mb-2" style="height:25px; border-radius:15px;">
-                        <div id="myProgressBar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: 0%"></div>
-                    </div>
-                    <div class="small fw-bold"><span id="myDistDisplay">0.00</span> / 104 กม.</div>
-                    <div id="myHistoryList" class="text-start mt-3"></div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyA2rMlXRgXSs_Zx3recKiuZ06QfbhnH5jG4eNUYRMC5Ff3qH90c5Cp0ia4P89Sr8yS/exec";
+    // ** อย่าลืมใส่ URL ของอาจารย์ตรงนี้ครับ **
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPsGbONqxTdtxysAuRGQ1fdSuC-dmZAxXy06EFr87xNhIOoqsr8oDneeLCAMOFcesInw/exec";
+    
     const distances = { 'Start': 0, 'CP1': 7, 'CP2': 56, 'CP3': 72, 'CP4': 89, 'CP5': 103, 'CP6': 104 };
     const pointNames = { 'Start': 'จุด Start', 'CP1': 'CP-1', 'CP2': 'CP-2', 'CP3': 'CP-3', 'CP4': 'CP-4', 'CP5': 'CP-5', 'CP6': 'Finish (กม.104)' };
     const LIMIT_HOURS = 24;
@@ -265,6 +303,7 @@
 </script>
 </body>
 </html>
+
 
 
 
