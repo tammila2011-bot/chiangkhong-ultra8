@@ -136,7 +136,31 @@
 
     let html5QrCode;
 
-    function speak(t) { if ('speechSynthesis' in window) { const m = new SpeechSynthesisUtterance(t); m.lang = 'th-TH'; window.speechSynthesis.speak(m); } }
+    // 1. ฟังก์ชันเสียงที่มีความฉลาดและอบอุ่นขึ้น
+function speakTrainer(name, pointCode) {
+    if (!('speechSynthesis' in window)) return;
+
+    const quotes = {
+        'Start': ["ขอให้เป็นวันที่ยอดเยี่ยมนะครับ", "เริ่มต้นการเดินทางที่ยิ่งใหญ่ได้แล้วครับ", "ลุยเลยครับ เราเชื่อว่าคุณทำได้"],
+        'Mid': ["สุดยอดมากครับคุณ", "ร่างกายอาจจะเหนื่อยแต่ใจคุณต้องสู้่นะ", "ไปต่อครับ อีกนิดเดียวจะถึงจุดพักแล้ว", "คุณคือความภูมิใจของชาวเชียงของครับ"],
+        'Near': ["ใจสู้มากครับ! อีกอึดใจเดียวเท่านั้น", "เห็นแสงสว่างที่เส้นชัยหรือยังครับ", "ประวัติศาสตร์กำลังจะจดจำชื่อคุณครับ"],
+        'CP6': ["ยินดีด้วยอย่างยิ่งครับ! คุณทำสำเร็จแล้ว", "คุณคือผู้พิชิต 104 กิโลเมตรอย่างเป็นทางการครับ", "พักผ่อนให้เต็มที่นะครับ คุณเก่งที่สุดเลย"]
+    };
+
+    let category = 'Mid';
+    if (pointCode === 'Start') category = 'Start';
+    else if (pointCode === 'CP5') category = 'Near';
+    else if (pointCode === 'CP6') category = 'CP6';
+
+    const randomQuote = quotes[category][Math.floor(Math.random() * quotes[category].length)];
+    const fullText = `สวัสดีครับคุณ ${name}. จุด ${pointNames[pointCode]}. ${randomQuote}. สู้ๆ นะครับ!`;
+
+    const utterance = new SpeechSynthesisUtterance(fullText);
+    utterance.lang = 'th-TH';
+    utterance.rate = 0.9; // ปรับให้ออกเสียงช้าลงนิดนึงเพื่อให้ฟังดูอบอุ่น
+    utterance.pitch = 1.1; // ปรับเสียงให้ดูสดใสขึ้น
+    window.speechSynthesis.speak(utterance);
+}
     function unlockAudio() { speak("ระบบเสียงพร้อมทำงานค่ะ"); }
     function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
 
@@ -173,13 +197,32 @@
         showLoading(false);
     };
 
-    async function checkPoint(code) {
-        const bib = document.getElementById('scanBib').value.trim(); if(!bib) return alert('ระบุ BIB');
-        showLoading(true);
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: bib, end: code, distance: distances[code] }) });
-        speak("บันทึกจุด " + pointNames[code] + " สำเร็จ");
+    // 2. ปรับปรุงฟังก์ชันบันทึกจุดสแกนให้ดึงชื่อมาพูด
+async function checkPoint(code) {
+    const bib = document.getElementById('scanBib').value.trim();
+    if (!bib) return alert('ระบุ BIB');
+    
+    showLoading(true);
+    try {
+        // ดึงข้อมูลชื่อนักวิ่งก่อนบันทึก (หรือใช้จากฐานข้อมูลที่โหลดไว้)
+        const res = await fetch(SCRIPT_URL);
+        const rows = await res.json();
+        const runner = rows.find(r => String(r[2]).trim() === bib);
+        const runnerName = runner ? runner[3] : "นักวิ่ง";
+
+        const data = { action: 'record', bib: bib, end: code, distance: distances[code] };
+        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
+        
+        // เรียกใช้เสียงทักทายแบบ Trainer
+        speakTrainer(runnerName, code);
+        
         showLoading(false);
+    } catch (e) {
+        console.error(e);
+        showLoading(false);
+        alert("บันทึกไม่สำเร็จ โปรดตรวจสอบอินเทอร์เน็ต");
     }
+}
 
     async function fetchDataFromCloud(filter = 'All') {
         showLoading(true);
@@ -265,6 +308,7 @@
 </script>
 </body>
 </html>
+
 
 
 
