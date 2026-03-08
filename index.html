@@ -197,7 +197,7 @@
             const runner = rows.find(r => String(r[2]).trim() === bib);
             const name = runner ? runner[3] : "นักวิ่ง";
             await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: bib, end: code, distance: distances[code] }) });
-            speakTrainer(`สวัสดีครับคุณ ${name}. บันทึกจุด ${pointNames[code]} เรียบร้อย. สู้ๆ นะครับ!`);
+            speakTrainer(`สวัสดีค่ะคุณ ${name}. บันทึกจุด ${pointNames[code]} เรียบร้อย. สู้ๆ นะค่ะ!`);
         } catch (e) { alert("บันทึกไม่สำเร็จ"); }
         showLoading(false);
     }
@@ -265,69 +265,65 @@
         const res = await fetch(SCRIPT_URL);
         const rows = await res.json();
         
-        // ประมวลผลอันดับใหม่เพื่อให้ได้ค่า isFinish ที่ถูกต้องแม่นยำที่สุด
-        const allRanks = processRanking(rows, 'All').list;
-        const myRankIndex = allRanks.findIndex(r => r.bib === bib);
-        const myData = allRanks[myRankIndex];
+        // กรองข้อมูลเฉพาะของนักวิ่งคนนี้
+        let s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN');
+        s.sort((a, b) => new Date(a[0]) - new Date(b[0])); 
 
-        if(myData) {
-            let s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN');
-            s.sort((a, b) => new Date(a[0]) - new Date(b[0])); 
+        // ดึงข้อมูลพื้นฐานนักวิ่ง
+        const regRow = rows.find(r => String(r[2]).trim() === bib && r[1] === 'REG');
+        const name = regRow ? regRow[3] : "นักวิ่ง";
+        const cat = regRow ? regRow[8] : "-";
 
+        if(s.length > 0) {
             let histArray = s.map(r => `<div class="history-card">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-warning">+${parseFloat(r[5]).toFixed(2)} กม.</span></div>`);
             
-            document.getElementById('myNameDisplay').innerText = myData.name;
-            document.getElementById('myRankDisplay').innerText = `อันดับรวม: ${myRankIndex + 1}`;
+            // หาจุด Start และ CP6 เพื่อคำนวณสถานะ
+            const hasStart = s.some(r => r[7] === 'Start');
+            const hasFinish = s.some(r => r[7] === 'CP6');
+            const maxDist = Math.max(...s.map(r => parseFloat(r[5] || 0)));
             
-            // --- 🛠️ ปรับปรุง Logic สถานะและเสียง (Fix สมศรี 1004) ---
-            const startT = s.length > 0 ? new Date(s[0][0]) : null;
-            const now = new Date();
-            const diffHours = startT ? (now - startT) / (1000 * 60 * 60) : 0;
+            const firstScanTime = new Date(s[0][0]);
+            const lastScanTime = new Date(s[s.length - 1][0]);
+            const diffHours = (lastScanTime - firstScanTime) / (1000 * 60 * 60);
 
-            // เช็กจากข้อมูลสรุป (myData.isFinish) ซึ่งจะดูว่าสแกน CP6 หรือยัง
-            if (myData.isFinish) {
-                document.getElementById('myStatusDisplay').innerHTML = "🥇 <span class='text-success'>OFFICIAL FINISHER</span>";
-                // เสียงแสดงความยินดีแบบพิเศษสำหรับผู้พิชิต
-                speakTrainer(`ยินดีด้วยอย่างยิ่งครับคุณ ${myData.name}! คุณทำสำเร็จแล้ว คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตรอย่างเป็นทางการครับ เก่งที่สุดเลย! พักผ่อนให้เต็มที่นะครับ`);
-            } else if (s.length > 0 && diffHours < LIMIT_HOURS) {
+            document.getElementById('myNameDisplay').innerText = name;
+            
+            // --- 🏆 Logic ตัดสิน FINISHER ฉบับแก้ไข ---
+            if (hasFinish && diffHours <= LIMIT_HOURS) {
+                document.getElementById('myStatusDisplay').innerHTML = "🥇 <span class='text-success fw-bold'>OFFICIAL FINISHER</span>";
+                speakTrainer(`ยินดีด้วยอย่างยิ่งค่ะคุณ ${name}! คุณทำสำเร็จแล้ว คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตรอย่างเป็นทางการค่ะ เก่งที่สุดเลย!`);
+            } else if (diffHours < LIMIT_HOURS && !hasFinish) {
                 document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
-                const cheers = [
-                    `อีกนิดเดียวจะถึงเส้นชัยแล้วครับคุณ ${myData.name} สู้ๆ นะครับ!`,
-                    `ร่างกายอาจจะเหนื่อยแต่ใจต้องสู้นะครับคุณ ${myData.name} มุ่งหน้าสู่เส้นชัยต่อไปครับ!`
-                ];
+                const cheers = [`สู้ๆ นะค่ะคุณ ${name} อีกนิดเดียว!`, `คุณเก่งมากค่ะบคุณ ${name} ไปต่อค่ะ!`];
                 speakTrainer(cheers[Math.floor(Math.random() * cheers.length)]);
-            } else if (s.length > 0) {
+            } else {
                 document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text'>DNF (Keep Fighting!)</span>";
-                speakTrainer(`เป็นกำลังใจให้ในความมุ่งมั่นนะครับคุณ ${myData.name} ปีหน้ากลับมาแก้มือใหม่นะครับ`);
+                speakTrainer(`เป็นกำลังใจให้คุณ ${name} นะค่ะ ทุกก้าวคือความภูมิใจ ปีหน้ามาสู้ใหม่นะค่ะ`);
             }
 
-            // --- ส่วนคำนวณ Pace (คงความแม่นยำไว้) ---
+            // --- 📊 คำนวณ Pace ---
             let paceText = "--:--";
-            if (s.length >= 1 && myData.maxDist > 0) {
-                const startTime = new Date(s[0][0]);
-                const lastTime = new Date(s[s.length - 1][0]);
-                let diffMins = (lastTime - startTime) / (1000 * 60);
-                
-                if (diffMins > 0) {
-                    let paceRaw = diffMins / myData.maxDist;
-                    let pMin = Math.floor(paceRaw);
-                    let pSec = Math.round((paceRaw - pMin) * 60);
-                    paceText = `${pMin}:${pSec.toString().padStart(2, '0')} min/km`;
-                }
+            let diffMins = (lastScanTime - firstScanTime) / (1000 * 60);
+            if (diffMins > 0 && maxDist > 0) {
+                let paceRaw = diffMins / maxDist;
+                let pMin = Math.floor(paceRaw);
+                let pSec = Math.round((paceRaw - pMin) * 60);
+                paceText = `${pMin}:${pSec.toString().padStart(2, '0')} min/km`;
             }
             
             document.getElementById('myPaceBadge').innerHTML = `<span class="badge bg-warning text-dark" style="font-size:1rem;">Pace เฉลี่ย: ${paceText}</span>`;
-            document.getElementById('myDistDisplay').innerText = myData.maxDist.toFixed(2);
-            document.getElementById('myProgressBar').style.width = (myData.maxDist/104*100) + '%';
+            document.getElementById('myDistDisplay').innerText = maxDist.toFixed(2);
+            document.getElementById('myProgressBar').style.width = (maxDist/104*100) + '%';
             document.getElementById('myHistoryList').innerHTML = histArray.reverse().join('');
             document.getElementById('myResultArea').style.display = 'block';
-        } else { alert("ไม่พบข้อมูล BIB"); }
+        } else { alert("ไม่พบข้อมูลการสแกนของ BIB นี้ค่ะ"); }
     } catch(e) { console.error(e); }
     showLoading(false);
 }
 </script>
 </body>
 </html>
+
 
 
 
