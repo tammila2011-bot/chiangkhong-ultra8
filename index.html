@@ -264,12 +264,13 @@
     try {
         const res = await fetch(SCRIPT_URL);
         const rows = await res.json();
+        
+        // ประมวลผลอันดับใหม่เพื่อให้ได้ค่า isFinish ที่ถูกต้องแม่นยำที่สุด
         const allRanks = processRanking(rows, 'All').list;
         const myRankIndex = allRanks.findIndex(r => r.bib === bib);
         const myData = allRanks[myRankIndex];
 
         if(myData) {
-            // ดึงข้อมูลการวิ่งและ "เรียงลำดับตามเวลา" จากน้อยไปมาก
             let s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN');
             s.sort((a, b) => new Date(a[0]) - new Date(b[0])); 
 
@@ -278,27 +279,33 @@
             document.getElementById('myNameDisplay').innerText = myData.name;
             document.getElementById('myRankDisplay').innerText = `อันดับรวม: ${myRankIndex + 1}`;
             
-            // --- ระบบเสียงและสถานะ ---
+            // --- 🛠️ ปรับปรุง Logic สถานะและเสียง (Fix สมศรี 1004) ---
             const startT = s.length > 0 ? new Date(s[0][0]) : null;
             const now = new Date();
             const diffHours = startT ? (now - startT) / (1000 * 60 * 60) : 0;
 
+            // เช็กจากข้อมูลสรุป (myData.isFinish) ซึ่งจะดูว่าสแกน CP6 หรือยัง
             if (myData.isFinish) {
                 document.getElementById('myStatusDisplay').innerHTML = "🥇 <span class='text-success'>OFFICIAL FINISHER</span>";
-                speakTrainer(`ยินดีด้วยอย่างยิ่งครับคุณ ${myData.name}! คุณคือผู้พิชิต 104 กิโลเมตรสำเร็จแล้วครับ!`);
+                // เสียงแสดงความยินดีแบบพิเศษสำหรับผู้พิชิต
+                speakTrainer(`ยินดีด้วยอย่างยิ่งครับคุณ ${myData.name}! คุณทำสำเร็จแล้ว คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตรอย่างเป็นทางการครับ เก่งที่สุดเลย! พักผ่อนให้เต็มที่นะครับ`);
             } else if (s.length > 0 && diffHours < LIMIT_HOURS) {
                 document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
-                const cheers = [`สู้ๆ นะครับคุณ ${myData.name} อีกนิดเดียว!`, `คุณเก่งมากครับคุณ ${myData.name} ไปต่อครับ!`];
+                const cheers = [
+                    `อีกนิดเดียวจะถึงเส้นชัยแล้วครับคุณ ${myData.name} สู้ๆ นะครับ!`,
+                    `ร่างกายอาจจะเหนื่อยแต่ใจต้องสู้นะครับคุณ ${myData.name} มุ่งหน้าสู่เส้นชัยต่อไปครับ!`
+                ];
                 speakTrainer(cheers[Math.floor(Math.random() * cheers.length)]);
             } else if (s.length > 0) {
                 document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text'>DNF (Keep Fighting!)</span>";
+                speakTrainer(`เป็นกำลังใจให้ในความมุ่งมั่นนะครับคุณ ${myData.name} ปีหน้ากลับมาแก้มือใหม่นะครับ`);
             }
 
-            // --- 🛠️ ส่วนคำนวณ Pace (Fix ปัญหาค่าหาย) ---
+            // --- ส่วนคำนวณ Pace (คงความแม่นยำไว้) ---
             let paceText = "--:--";
             if (s.length >= 1 && myData.maxDist > 0) {
-                const startTime = new Date(s[0][0]); // จุดเริ่มจริง
-                const lastTime = new Date(s[s.length - 1][0]); // จุดล่าสุดจริง
+                const startTime = new Date(s[0][0]);
+                const lastTime = new Date(s[s.length - 1][0]);
                 let diffMins = (lastTime - startTime) / (1000 * 60);
                 
                 if (diffMins > 0) {
@@ -321,6 +328,7 @@
 </script>
 </body>
 </html>
+
 
 
 
