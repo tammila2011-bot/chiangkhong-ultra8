@@ -265,45 +265,53 @@
         const res = await fetch(SCRIPT_URL);
         const rows = await res.json();
         
-        // กรองข้อมูลเฉพาะของนักวิ่งคนนี้
         let s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN');
         s.sort((a, b) => new Date(a[0]) - new Date(b[0])); 
 
-        // ดึงข้อมูลพื้นฐานนักวิ่ง
         const regRow = rows.find(r => String(r[2]).trim() === bib && r[1] === 'REG');
         const name = regRow ? regRow[3] : "นักวิ่ง";
-        const cat = regRow ? regRow[8] : "-";
 
         if(s.length > 0) {
             let histArray = s.map(r => `<div class="history-card">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-warning">+${parseFloat(r[5]).toFixed(2)} กม.</span></div>`);
             
-            // หาจุด Start และ CP6 เพื่อคำนวณสถานะ
-            const hasStart = s.some(r => r[7] === 'Start');
             const hasFinish = s.some(r => r[7] === 'CP6');
             const maxDist = Math.max(...s.map(r => parseFloat(r[5] || 0)));
-            
             const firstScanTime = new Date(s[0][0]);
             const lastScanTime = new Date(s[s.length - 1][0]);
-            const diffHours = (lastScanTime - firstScanTime) / (1000 * 60 * 60);
+            const diffMs = lastScanTime - firstScanTime;
+            const diffHours = diffMs / (1000 * 60 * 60);
 
             document.getElementById('myNameDisplay').innerText = name;
             
-            // --- 🏆 Logic ตัดสิน FINISHER ฉบับแก้ไข ---
+            // --- ⏱️ คำนวณเวลาสุทธิ (Net Time) ---
+            let totalSecs = Math.floor(diffMs / 1000);
+            let h = Math.floor(totalSecs / 3600);
+            let m = Math.floor((totalSecs % 3600) / 60);
+            let ss = totalSecs % 60;
+            let timeStr = `${h} ชม. ${m} นาที ${ss} วินาที`;
+
+            // --- 🏆 Logic แสดงสถานะและบาร์เวลา ---
             if (hasFinish && diffHours <= LIMIT_HOURS) {
-                document.getElementById('myStatusDisplay').innerHTML = "🥇 <span class='text-success fw-bold'>OFFICIAL FINISHER</span>";
-                speakTrainer(`ยินดีด้วยอย่างยิ่งค่ะคุณ ${name}! คุณทำสำเร็จแล้ว คุณคือผู้พิชิตหนึ่งร้อยสี่กิโลเมตรอย่างเป็นทางการค่ะ เก่งที่สุดเลย!`);
+                document.getElementById('myStatusDisplay').innerHTML = `
+                    <div class="mb-2">🥇 <span class='text-success fw-bold' style='font-size:1.2rem;'>OFFICIAL FINISHER</span></div>
+                    <div class="total-km-box py-2 mb-3" style="background: linear-gradient(45deg, #FFD700, #b59451); color: #000;">
+                        <small class="fw-bold">เวลาสุทธิ (NET TIME)</small>
+                        <h3 class="fw-bold mb-0">${timeStr}</h3>
+                    </div>
+                `;
+                speakTrainer(`ยินดีด้วยอย่างยิ่งครับคุณ ${name}! คุณทำสำเร็จแล้วด้วยเวลา ${h} ชั่วโมง ${m} นาทีครับ!`);
             } else if (diffHours < LIMIT_HOURS && !hasFinish) {
                 document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
-                const cheers = [`สู้ๆ นะค่ะคุณ ${name} อีกนิดเดียว!`, `คุณเก่งมากค่ะบคุณ ${name} ไปต่อค่ะ!`];
+                const cheers = [`สู้ๆ นะครับคุณ ${name} อีกนิดเดียว!`, `คุณเก่งมากครับคุณ ${name} ไปต่อครับ!`];
                 speakTrainer(cheers[Math.floor(Math.random() * cheers.length)]);
             } else {
                 document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text'>DNF (Keep Fighting!)</span>";
-                speakTrainer(`เป็นกำลังใจให้คุณ ${name} นะค่ะ ทุกก้าวคือความภูมิใจ ปีหน้ามาสู้ใหม่นะค่ะ`);
+                speakTrainer(`เป็นกำลังใจให้คุณ ${name} นะครับ ทุกก้าวคือความภูมิใจครับ`);
             }
 
             // --- 📊 คำนวณ Pace ---
             let paceText = "--:--";
-            let diffMins = (lastScanTime - firstScanTime) / (1000 * 60);
+            let diffMins = diffMs / (1000 * 60);
             if (diffMins > 0 && maxDist > 0) {
                 let paceRaw = diffMins / maxDist;
                 let pMin = Math.floor(paceRaw);
@@ -316,13 +324,14 @@
             document.getElementById('myProgressBar').style.width = (maxDist/104*100) + '%';
             document.getElementById('myHistoryList').innerHTML = histArray.reverse().join('');
             document.getElementById('myResultArea').style.display = 'block';
-        } else { alert("ไม่พบข้อมูลการสแกนของ BIB นี้ค่ะ"); }
+        } else { alert("ไม่พบข้อมูลการสแกนครับ"); }
     } catch(e) { console.error(e); }
     showLoading(false);
 }
 </script>
 </body>
 </html>
+
 
 
 
