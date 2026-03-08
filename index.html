@@ -299,7 +299,7 @@
                         <h3 class="fw-bold mb-0">${timeStr}</h3>
                     </div>
                 `;
-                speakTrainer(`ยินดีด้วยอย่างยิ่งค่ะคุณ ${name}! คุณทำสำเร็จแล้วด้วยเวลา ${h} ชั่วโมง ${m} นาทีครับ!`);
+                speakTrainer(`ยินดีด้วยอย่างยิ่งค่ะคุณ ${name}! คุณทำสำเร็จแล้วด้วยเวลา ${h} ชั่วโมง ${m} นาทีค่ะ!`);
             } else if (diffHours < LIMIT_HOURS && !hasFinish) {
                 document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
                 const cheers = [`สู้ๆ นะค่ะคุณ ${name} อีกนิดเดียว!`, `คุณเก่งมากค่ะคุณ ${name} ไปต่อค่ะ!`];
@@ -331,6 +331,7 @@
 </script>
 </body>
 </html>
+
 
 
 
