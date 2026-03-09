@@ -105,7 +105,6 @@
                         <tbody id="rankingBody"></tbody>
                     </table>
                 </div>
-
                 <div class="admin-section text-center">
                     <div id="adminPanel" style="display:none;">
                         <button class="btn btn-danger btn-sm mt-2 fw-bold" onclick="globalStartAction()">🚀 ปล่อยตัวนักวิ่งทั้งหมด (16:00 น.)</button>
@@ -158,7 +157,6 @@
     function unlockAudio() { speakTrainer("ระบบเสียงเทรนเนอร์ พร้อมดูแลนักวิ่งทุกคนแล้วค่ะ สู้ๆ นะคะ"); }
     function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
 
-    // --- Admin Logic ---
     function checkAdminPass(val) {
         const panel = document.getElementById('adminPanel');
         if (val === "Tam791234") {
@@ -177,18 +175,12 @@
             const rows = await res.json();
             const allRunners = rows.filter(r => r[1] === 'REG');
             const runLogs = rows.filter(r => r[1] === 'RUN');
-            
-            const gunStart = new Date();
-            gunStart.setHours(16, 0, 0, 0);
-            
+            const gunStart = new Date(); gunStart.setHours(16, 0, 0, 0);
             let count = 0;
             for (let runner of allRunners) {
                 const bib = String(runner[2]).trim();
                 if (!runLogs.some(l => String(l[2]).trim() === bib && l[7] === 'Start')) {
-                    await fetch(SCRIPT_URL, { 
-                        method: 'POST', mode: 'no-cors', 
-                        body: JSON.stringify({ action: 'record', bib: bib, end: 'Start', distance: 0, customTime: gunStart.toISOString() }) 
-                    });
+                    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: bib, end: 'Start', distance: 0, customTime: gunStart.toISOString() }) });
                     count++;
                 }
             }
@@ -198,7 +190,6 @@
         showLoading(false);
     }
 
-    // --- Runner Verification ---
     async function verifyRunnerBeforeScan() {
         const bib = document.getElementById('scanBib').value.trim();
         if (!bib) return alert("โปรดระบุหมายเลข BIB");
@@ -218,18 +209,25 @@
         showLoading(false);
     }
 
-    // --- Scanning & Registration ---
+    // --- ส่วนแก้ไข Browser Safari/Firefox ---
     async function startScanner() {
         try {
             document.getElementById('startScanBtn').style.display = 'none';
             document.getElementById('stopScanBtn').style.display = 'block';
             if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-            await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-                const url = new URL(text);
-                const p = url.searchParams.get("point");
-                if (p && pointNames[p]) { speakTrainer("พบจุด " + pointNames[p]); handleScannedPoint(p); stopScanner(); }
+            // เพิ่มการตั้งค่ารองรับ Browser มือถือที่หลากหลายขึ้น
+            const config = { fps: 10, qrbox: {width: 250, height: 250}, aspectRatio: 1.0 };
+            await html5QrCode.start({ facingMode: "environment" }, config, (text) => {
+                try {
+                    const url = new URL(text);
+                    const p = url.searchParams.get("point");
+                    if (p && pointNames[p]) { speakTrainer("พบจุด " + pointNames[p]); handleScannedPoint(p); stopScanner(); }
+                } catch(e) { console.error("Invalid QR"); }
             });
-        } catch (err) { alert("Camera Error: " + err); }
+        } catch (err) { 
+            alert("กล้องมีปัญหา: " + err + "\nแนะนำให้เปิดผ่าน Chrome หรืออนุญาตการเข้าถึงกล้องในตั้งค่าครับ"); 
+            stopScanner();
+        }
     }
     function stopScanner() { if (html5QrCode?.isScanning) html5QrCode.stop().then(() => { document.getElementById('startScanBtn').style.display = 'block'; document.getElementById('stopScanBtn').style.display = 'none'; }); }
     function handleScannedPoint(p) { document.getElementById('btnArea').style.display = 'grid'; document.querySelectorAll('.btn-checkpoint').forEach(b => b.style.display = 'none'); document.getElementById('btn' + p).style.display = 'block'; }
@@ -257,49 +255,39 @@
         const bib = document.getElementById('scanBib').value.trim(); if (!bib) return;
         showLoading(true);
         try {
-            const res = await fetch(SCRIPT_URL);
-            const rows = await res.json();
-            const r = rows.find(r => String(r[2]).trim() === bib);
             await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: bib, end: code, distance: distances[code] }) });
             speakTrainer(`บันทึกจุด ${pointNames[code]} เรียบร้อย. สู้ๆ นะคะ!`);
         } catch (e) { alert("Check-in Error"); }
         showLoading(false);
     }
 
-    // --- Ranking & MyStats (Logic Gun Start 16:00) ---
     function processRanking(rows, filter) {
         let stats = {}, info = {}, grandTotal = 0;
         const gunStart = new Date(); gunStart.setHours(16, 0, 0, 0);
-
         rows.slice(1).forEach(r => {
             const bib = String(r[2]).trim();
             if (r[1] === 'REG') info[bib] = { name: r[3], cat: r[8], gen: r[9] };
             if (r[1] === 'RUN') {
                 if (!stats[bib]) stats[bib] = { dists: [], times: [], points: [] };
                 stats[bib].dists.push(parseFloat(r[5] || 0));
-                // หากเป็นจุด Start หรือเวลามาก่อน 16:00 น. ให้ปัดเป็น 16:00 น.
                 let t = new Date(r[0]);
                 stats[bib].times.push((r[7] === 'Start' || t < gunStart) ? gunStart : t);
                 stats[bib].points.push(r[7]);
                 grandTotal += parseFloat(r[5] || 0);
             }
         });
-
         let list = Object.keys(stats).map(bib => {
             const s = stats[bib]; s.times.sort((a,b) => a-b);
             const maxDist = Math.max(...s.dists);
             const hasStart = s.points.includes('Start');
             const hasFinish = s.points.includes('CP6');
-            
             const startPoint = hasStart ? gunStart : s.times[0];
             const diffMs = s.times[s.times.length - 1] - startPoint;
             const h = diffMs / 3600000;
             const isFinish = hasFinish && h <= LIMIT_HOURS;
-            
             let timeDisplay = isFinish ? `${Math.floor(h)} ชม. ${Math.floor((diffMs % 3600000) / 60000)} นาที` : "";
             return { bib, name: info[bib]?.name || 'นักวิ่ง', cat: info[bib]?.cat, gen: info[bib]?.gen, maxDist, timeVal: h, timeDisplay, isFinish };
         });
-
         if (filter !== 'All') {
             if (filter === 'Solo-M') list = list.filter(r => r.cat === 'Solo' && r.gen === 'M');
             else if (filter === 'Solo-F') list = list.filter(r => r.cat === 'Solo' && r.gen === 'F');
@@ -327,6 +315,7 @@
         showLoading(false);
     }
 
+    // --- ส่วนแก้ไขเสียงยินดีและสถิติเวลา (Fix 1005/A001) ---
     async function loadMyStats() {
         const bib = document.getElementById('myBibSearch').value.trim(); if(!bib) return;
         showLoading(true);
@@ -340,13 +329,19 @@
                 let s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN').sort((a,b) => new Date(a[0]) - new Date(b[0]));
                 document.getElementById('myNameDisplay').innerText = myData.name;
                 document.getElementById('myRankDisplay').innerText = `อันดับรวม: ${myRankIndex + 1}`;
+                
+                // แก้ไข Logic: เช็ก Finisher ก่อน เพื่อให้โชว์เวลาที่ถูกต้องและพูดข้อความยินดี
                 if (myData.isFinish) {
                     document.getElementById('myStatusDisplay').innerHTML = `🥇 <span class='text-success fw-bold'>FINISHER</span><div class="total-km-box py-2 mt-2" style="background:linear-gradient(45deg,#FFD700,#b59451);color:#000;"><small>NET TIME</small><h3 class="fw-bold mb-0">${myData.timeDisplay}</h3></div>`;
-                    speakTrainer(`ยินดีด้วยค่ะคุณ ${myData.name}! คุณทำสำเร็จในเวลา ${myData.timeDisplay} ค่ะ!`);
-                } else if (myData.timeVal < LIMIT_HOURS || s.length > 0) {
+                    speakTrainer(`ยินดีด้วยอย่างยิ่งค่ะคุณ ${myData.name}! คุณถึงจุดฟินิชหนึ่งร้อยสี่กิโลเมตรแล้ว คุณเก่งมากค่ะ! สถิติเวลาของคุณคือ ${myData.timeDisplay} ค่ะ`);
+                } else if (s.length > 0 && myData.timeVal < LIMIT_HOURS) {
                     document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
-                    speakTrainer(`สู้ๆ นะคะคุณ ${myData.name} อีกนิดเดียว!`);
+                    speakTrainer(`สู้ๆ นะคะคุณ ${myData.name} อีกนิดเดียวก็จะถึงเส้นชัยแล้วค่ะ!`);
+                } else {
+                    document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text text-danger'>DNF / Out of Time</span>";
+                    speakTrainer(`เป็นกำลังใจให้คุณ ${myData.name} นะคะ ทุกระยะทางคือความภูมิใจค่ะ`);
                 }
+
                 let p = "--:--";
                 if (myData.timeVal > 0 && myData.maxDist > 0) {
                     let r = (myData.timeVal * 60) / myData.maxDist;
@@ -364,6 +359,7 @@
 </script>
 </body>
 </html>
+
 
 
 
