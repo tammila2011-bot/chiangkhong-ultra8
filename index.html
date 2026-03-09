@@ -241,9 +241,9 @@
     }
 
     // --- 🛠️ ภาคส่วนคำนวณสถิติ (ปรับปรุงให้แก้ปัญหา 0 ชม.) ---
+    // --- 🛠️ ภาคส่วนคำนวณสถิติ (ฉบับแก้ไขวันที่คลาดเคลื่อน) ---
     function processRanking(rows, filter) {
         let stats = {}, info = {}, grandTotal = 0;
-        const gunStart = new Date(); gunStart.setHours(16, 0, 0, 0);
 
         rows.slice(1).forEach(r => {
             const bib = String(r[2]).trim();
@@ -251,8 +251,7 @@
             if (r[1] === 'RUN') {
                 if (!stats[bib]) stats[bib] = { dists: [], times: [], points: [] };
                 stats[bib].dists.push(parseFloat(r[5] || 0));
-                let t = new Date(r[0]);
-                stats[bib].times.push(t);
+                stats[bib].times.push(new Date(r[0]));
                 stats[bib].points.push(r[7]);
                 grandTotal += parseFloat(r[5] || 0);
             }
@@ -260,37 +259,38 @@
 
         let list = Object.keys(stats).map(bib => {
             const s = stats[bib];
+            // เรียงลำดับเวลาบันทึกจากน้อยไปมาก
+            const sortedIndices = s.times.map((t, i) => i).sort((a, b) => s.times[a] - s.times[b]);
+            const sortedTimes = sortedIndices.map(i => s.times[i]);
+            const sortedPoints = sortedIndices.map(i => s.points[i]);
+
             const maxDist = Math.max(...s.dists);
-            const hasStart = s.points.includes('Start');
-            const hasFinish = s.points.includes('CP6');
+            const hasFinish = sortedPoints.includes('CP6');
             
-            // หาเวลาที่บันทึกไว้ในจุด Start และ CP6
-            const startIdx = s.points.indexOf('Start');
-            const finishIdx = s.points.indexOf('CP6');
-            
-            // ใช้ Gun Start 16:00 เป็นฐานเสมอสำหรับการแข่งขันที่เป็นทางการ
-            const startTime = gunStart; 
-            const lastTime = s.times[s.times.length - 1]; // เวลาล่าสุดที่บันทึก
-            
-            // คำนวณเวลาสุทธิ: ถ้า Finish แล้ว ให้เอาเวลา CP6 ลบ Gun Start
-            let finalDiffMs = 0;
-            if (hasFinish && finishIdx !== -1) {
-                finalDiffMs = s.times[finishIdx] - gunStart;
-            } else {
-                finalDiffMs = lastTime - gunStart;
-            }
+            // สร้างเวลา Gun Start โดยอิงจาก "วันที่" ของการสแกนครั้งแรก
+            const firstScan = sortedTimes[0];
+            const gunStart = new Date(firstScan.getTime());
+            gunStart.setHours(16, 0, 0, 0); // บังคับเป็น 16:00 น. ของวันนั้น
 
-            // ป้องกันค่าติดลบกรณีสแกนก่อนเวลา
-            if (finalDiffMs < 0) finalDiffMs = 0;
+            const lastScan = sortedTimes[sortedTimes.length - 1];
+            
+            // คำนวณเวลาสุทธิ (ถ้ามีจุด CP6 ให้ใช้เวลาของ CP6)
+            let finishTime = hasFinish ? sortedTimes[sortedPoints.lastIndexOf('CP6')] : lastScan;
+            let diffMs = finishTime - gunStart;
 
-            const hRaw = finalDiffMs / 3600000;
+            // ป้องกันกรณีสแกนก่อน 16:00 หรือข้อมูลวันคลาดเคลื่อน
+            if (diffMs < 0) diffMs = 0;
+
+            const hRaw = diffMs / 3600000;
             const isFinish = hasFinish && hRaw <= LIMIT_HOURS;
             
             let timeDisplay = "";
             if (isFinish) {
                 let hh = Math.floor(hRaw);
-                let mm = Math.floor((finalDiffMs % 3600000) / 60000);
+                let mm = Math.floor((diffMs % 3600000) / 60000);
                 timeDisplay = `${hh} ชม. ${mm} นาที`;
+            } else {
+                timeDisplay = `${maxDist.toFixed(2)} กม.`;
             }
 
             return { bib, name: info[bib]?.name || 'นักวิ่ง', cat: info[bib]?.cat, gen: info[bib]?.gen, maxDist, timeVal: hRaw, timeDisplay, isFinish };
@@ -364,6 +364,7 @@
 </script>
 </body>
 </html>
+
 
 
 
