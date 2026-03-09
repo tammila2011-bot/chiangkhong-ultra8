@@ -317,48 +317,61 @@
 
     // --- ส่วนแก้ไขเสียงยินดีและสถิติเวลา (Fix 1005/A001) ---
     async function loadMyStats() {
-        const bib = document.getElementById('myBibSearch').value.trim(); if(!bib) return;
-        showLoading(true);
-        try {
-            const res = await fetch(SCRIPT_URL);
-            const rows = await res.json();
-            const all = processRanking(rows, 'All').list;
-            const myRankIndex = all.findIndex(r => r.bib === bib);
-            const myData = all[myRankIndex];
-            if(myData) {
-                let s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN').sort((a,b) => new Date(a[0]) - new Date(b[0]));
-                document.getElementById('myNameDisplay').innerText = myData.name;
-                document.getElementById('myRankDisplay').innerText = `อันดับรวม: ${myRankIndex + 1}`;
-                
-                // แก้ไข Logic: เช็ก Finisher ก่อน เพื่อให้โชว์เวลาที่ถูกต้องและพูดข้อความยินดี
-                if (myData.isFinish) {
-                    document.getElementById('myStatusDisplay').innerHTML = `🥇 <span class='text-success fw-bold'>FINISHER</span><div class="total-km-box py-2 mt-2" style="background:linear-gradient(45deg,#FFD700,#b59451);color:#000;"><small>NET TIME</small><h3 class="fw-bold mb-0">${myData.timeDisplay}</h3></div>`;
-                    speakTrainer(`ยินดีด้วยอย่างยิ่งค่ะคุณ ${myData.name}! คุณถึงจุดฟินิชหนึ่งร้อยสี่กิโลเมตรแล้ว คุณเก่งมากค่ะ! สถิติเวลาของคุณคือ ${myData.timeDisplay} ค่ะ`);
-                } else if (s.length > 0 && myData.timeVal < LIMIT_HOURS) {
-                    document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
-                    speakTrainer(`สู้ๆ นะคะคุณ ${myData.name} อีกนิดเดียวก็จะถึงเส้นชัยแล้วค่ะ!`);
-                } else {
-                    document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text text-danger'>DNF / Out of Time</span>";
-                    speakTrainer(`เป็นกำลังใจให้คุณ ${myData.name} นะคะ ทุกระยะทางคือความภูมิใจค่ะ`);
-                }
+    const bib = document.getElementById('myBibSearch').value.trim(); if(!bib) return;
+    showLoading(true);
+    try {
+        const res = await fetch(SCRIPT_URL);
+        const rows = await res.json();
+        
+        // ประมวลผลอันดับทั้งหมดก่อน เพื่อดึงค่าที่คำนวณเสร็จแล้วมาใช้
+        const all = processRanking(rows, 'All').list;
+        const myRankIndex = all.findIndex(r => r.bib === bib);
+        const myData = all[myRankIndex];
 
-                let p = "--:--";
-                if (myData.timeVal > 0 && myData.maxDist > 0) {
-                    let r = (myData.timeVal * 60) / myData.maxDist;
-                    p = `${Math.floor(r)}:${Math.round((r%1)*60).toString().padStart(2,'0')} min/km`;
-                }
-                document.getElementById('myPaceBadge').innerHTML = `<span class="badge bg-warning text-dark">Pace เฉลี่ย: ${p}</span>`;
-                document.getElementById('myDistDisplay').innerText = myData.maxDist.toFixed(2);
-                document.getElementById('myProgressBar').style.width = (myData.maxDist/104*100) + '%';
-                document.getElementById('myHistoryList').innerHTML = s.map(r => `<div class="history-card">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-warning">+${parseFloat(r[5]).toFixed(2)} กม.</span></div>`).reverse().join('');
-                document.getElementById('myResultArea').style.display = 'block';
-            } else { alert("ไม่พบข้อมูล BIB ค่ะ"); }
-        } catch(e) { console.error(e); }
-        showLoading(false);
-    }
+        if(myData) {
+            let s = rows.filter(r => String(r[2]).trim() === bib && r[1] === 'RUN').sort((a,b) => new Date(a[0]) - new Date(b[0]));
+            document.getElementById('myNameDisplay').innerText = myData.name;
+            document.getElementById('myRankDisplay').innerText = `อันดับรวม: ${myRankIndex + 1}`;
+            
+            // --- 🛠️ Fix: ดึงค่า timeDisplay ที่คำนวณเสร็จแล้วมาโชว์ (แก้ 0 ชม.) ---
+            if (myData.isFinish) {
+                // แสดงบาร์สีทองและเวลาสุทธิที่ถูกต้อง
+                document.getElementById('myStatusDisplay').innerHTML = `
+                    🥇 <span class='text-success fw-bold'>FINISHER</span>
+                    <div class="total-km-box py-2 mt-2" style="background:linear-gradient(45deg,#FFD700,#b59451);color:#000;">
+                        <small class="fw-bold">เวลาสุทธิ (NET TIME)</small>
+                        <h3 class="fw-bold mb-0">${myData.timeDisplay}</h3>
+                    </div>`;
+                
+                // เสียงพูดทักทายแบบผู้ชนะ
+                speakTrainer(`ยินดีด้วยอย่างยิ่งค่ะคุณ ${myData.name}! คุณถึงจุดฟินิช 104 กิโลเมตรแล้ว คุณเก่งมากค่ะ! สถิติเวลาของคุณคือ ${myData.timeDisplay} ค่ะ`);
+            } else if (s.length > 0 && myData.timeVal < LIMIT_HOURS) {
+                document.getElementById('myStatusDisplay').innerHTML = "<span class='live-status'>🏃 LIVE: กำลังมุ่งสู่เส้นชัย</span>";
+                speakTrainer(`สู้ๆ นะคะคุณ ${myData.name} อีกนิดเดียวก็จะถึงเส้นชัยแล้วค่ะ!`);
+            } else {
+                document.getElementById('myStatusDisplay').innerHTML = "<span class='dnf-text text-danger'>DNF / Out of Time</span>";
+                speakTrainer(`เป็นกำลังใจให้คุณ ${myData.name} นะคะ ทุกระยะทางคือความภูมิใจค่ะ`);
+            }
+
+            // --- ส่วน Pace และประวัติ (คงเดิม) ---
+            let p = "--:--";
+            if (myData.timeVal > 0 && myData.maxDist > 0) {
+                let r = (myData.timeVal * 60) / myData.maxDist;
+                p = `${Math.floor(r)}:${Math.round((r%1)*60).toString().padStart(2,'0')} min/km`;
+            }
+            document.getElementById('myPaceBadge').innerHTML = `<span class="badge bg-warning text-dark">Pace เฉลี่ย: ${p}</span>`;
+            document.getElementById('myDistDisplay').innerText = myData.maxDist.toFixed(2);
+            document.getElementById('myProgressBar').style.width = (myData.maxDist/104*100) + '%';
+            document.getElementById('myHistoryList').innerHTML = s.map(r => `<div class="history-card">📅 ${new Date(r[0]).toLocaleTimeString('th-TH')} | 📍 ${pointNames[r[7]] || r[7]} <span class="text-warning">+${parseFloat(r[5]).toFixed(2)} กม.</span></div>`).reverse().join('');
+            document.getElementById('myResultArea').style.display = 'block';
+        } else { alert("ไม่พบข้อมูล BIB ค่ะ"); }
+    } catch(e) { console.error(e); }
+    showLoading(false);
+}
 </script>
 </body>
 </html>
+
 
 
 
