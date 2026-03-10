@@ -158,7 +158,10 @@
     function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
 
     // --- 🔊 คืนชีพฟังก์ชันทักทายที่เป็นกันเอง ---
+    // --- 🔊 ฟังก์ชันทักทายฉบับปรับปรุง (แก้เสียงอ่านชื่อเพี้ยน) ---
     function getEncouragement(name, pointCode) {
+        // กำจัดช่องว่างหรืออักขระแปลกปลอมเพื่อให้ AI อ่านเป็นคำ
+        const cleanName = name.replace(/\s+/g, '').trim(); 
         const quotes = {
             'Start': ["ขอให้เป็นวันที่ยอดเยี่ยมนะครับ", "เริ่มต้นการเดินทางที่ยิ่งใหญ่ได้แล้ว", "ลุยเลยครับ เราเชื่อว่าคุณทำได้"],
             'Mid': ["สุดยอดมากครับ", "ร่างกายอาจจะเหนื่อยแต่ใจต้องสู้นะ", "ไปต่อครับ อีกนิดเดียวจะถึงจุดพักแล้ว", "คุณคือความภูมิใจของเชียงของครับ"],
@@ -171,7 +174,7 @@
         else if (pointCode === 'CP6') cat = 'CP6';
         
         const rand = quotes[cat][Math.floor(Math.random() * quotes[cat].length)];
-        return `สวัสดีครับคุณ${name}. บันทึกจุด ${pointNames[pointCode]} เรียบร้อย. ${rand}. สู้ๆ นะครับ!`;
+        return `สวัสดีครับคุณ${cleanName}. บันทึกจุด ${pointNames[pointCode]} เรียบร้อย. ${rand}.`;
     }
 
     // --- 🛠️ Admin Logic ---
@@ -413,6 +416,7 @@
 </script>
 </body>
 </html>
+
 
 
 
