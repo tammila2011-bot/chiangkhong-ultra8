@@ -11,16 +11,27 @@
     <style>
         :root { --primary: #8e6d31; --primary-light: #b59451; --dark-bg: #1a1a1a; --success: #28a745; --danger: #dc3545; }
         body { background-color: var(--dark-bg); color: #eee; font-family: 'Prompt', sans-serif; min-height: 100vh; padding-bottom: 120px; }
-        /* 🛠️ ปรับโลโก้ให้ใหญ่และสวยอลังการตามใจอาจารย์ */
+        /* 🛠️ ปรับ Header ให้ใหญ่เต็มตา อลังการสุดๆ */
 .main-header {
-    background: linear-gradient(to bottom, rgba(0,0,0,1), rgba(0,0,0,0.8));
-    padding: 25px 0; /* เพิ่มพื้นที่ให้รูปดูเด่นขึ้น */
-    border-bottom: 2px solid var(--primary);
+    background: #000;
+    padding: 0; /* เอา Padding ออกเพื่อให้รูปชิดขอบ */
+    border-bottom: 3px solid var(--primary);
+    overflow: hidden;
+    line-height: 0; /* กำจัดช่องว่างใต้รูป */
 }
+
 .logo-img {
-    max-width: 90%; /* ขยายขนาดรูปให้เกือบเต็มหน้าจอ */
+    width: 100%; /* บังคับรูปให้กว้างเต็มหน้าจอ 100% */
+    max-width: none; /* ยกเลิกการจำกัดขนาดเดิม */
     height: auto;
-    filter: drop-shadow(0 0 15px rgba(142, 109, 49, 0.5)); /* เพิ่มแสงฟุ้งรอบรูปให้ดูขลัง */
+    display: block;
+    /* เพิ่มเอฟเฟกต์ให้รูปดูนูนเด่น */
+    filter: brightness(1.1) contrast(1.1); 
+}
+
+/* ปรับระยะห่าง Tab ให้ไม่ติดรูปเกินไป */
+.container.pb-5 {
+    padding-top: 15px;
 }
         .card { border: 1px solid #444; border-radius: 20px; background: rgba(255, 255, 255, 0.05); margin-bottom: 15px; overflow: hidden; }
         .nav-pills .nav-link { color: #eee; border-radius: 50px; font-size: 0.85rem; padding: 10px; }
