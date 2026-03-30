@@ -388,6 +388,18 @@
         });
     }
 
+    // --- 📢 ระบบแจ้งข่าวสารแบบใหม่ (เพิ่มเข้าไปตรงนี้ครับอาจารย์) ---
+    function showNews() {
+        const newsContent = `ยินดีต้อนรับนักวิ่งสู่เส้นทางมิตรภาพและน้ำใจ<br>
+        <b class="text-warning">ChiangKhong Ultra Marathon 104 Km</b>`;
+        
+        document.getElementById('newsContent').innerHTML = newsContent;
+        
+        // สั่งเปิดหน้าต่างเด้งสวยๆ ที่อาจารย์เขียนโค้ด HTML ไว้แล้ว
+        var myModal = new bootstrap.Modal(document.getElementById('newsModal'));
+        myModal.show();
+    }
+    
     function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
     function sendGPS() {
         if (navigator.geolocation) {
