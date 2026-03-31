@@ -359,10 +359,22 @@
         showLoading(false);
     }
 
-    // --- 📝 แก้ไขฟังก์ชันบันทึก CP ---
+    // --- 📝 บันทึกสถิติพร้อมชื่อสถานที่จริง ---
     async function checkPoint(cpCode, dist) {
         if(!currentRunner) return;
         showLoading(true);
+
+        // 🗺️ พจนานุกรมชื่อจุดสแกน (ฉบับว้าว!)
+        const cpNames = {
+            'Start': 'พิพิธภัณฑ์ศิลปะร่วมสมัยเมืองเชียงราย',
+            'CP1': 'หน้าห้างบิ๊กซี สนามบิน',
+            'CP2': 'โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านแซว',
+            'CP3': 'โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านไร่',
+            'CP4': 'จุดชมวิวห้วยทรายมาน',
+            'CP5': 'วัดหาดไคร้',
+            'CP6': 'ศาลาหนึ่งศูนย์สี่ ระเบียงโขงเชียงของ'
+        };
+
         const now = new Date();
         const start = new Date(GUN_START_TIME);
         const diffMin = (now - start) / 60000;
@@ -378,15 +390,24 @@
                 }) 
             });
 
+            const placeName = cpNames[cpCode] || cpCode;
+
             if (dist >= 104) {
-                // 🏆 ข้อความฉลองชัยฉบับจัดเต็ม
-                const finishMsg = `ขอแสดงความยินดีกับคุณ ${currentRunner.name.trim()}! พิชิตระยะทางหนึ่งร้อยสี่กิโลเมตรสำเร็จแล้วค่ะ คุณเก่งจริง!`;
+                // 🏆 ข้อความฉลองชัยที่เส้นชัย
+                const finishMsg = `ขอแสดงความยินดีกับคุณ ${currentRunner.name.trim()}! คุณถึง ${placeName} แล้วค่ะ พิชิตระยะทางหนึ่งร้อยสี่กิโลเมตรสำเร็จสมบูรณ์ คุณเก่งจริงและหัวใจเพชรมากค่ะ!`;
                 speak(finishMsg);
-                alert(`🏁 สำเร็จสมบูรณ์!\nยินดีด้วยคุณ ${currentRunner.name}\nจบระยะ 104 กม. เรียบร้อย!`);
+                alert(`🏁 Finish! ยินดีด้วยคุณ ${currentRunner.name}\nพิชิตเชียงของ 104 กม. สำเร็จ!`);
+            } else if (cpCode === 'Start') {
+                // 🚩 ข้อความจุดเริ่มต้น
+                const startMsg = `สวัสดีค่ะคุณ ${currentRunner.name.trim()} เริ่มต้นการแข่งขันที่ ${placeName} ขอให้สนุกและปลอดภัยตลอดเส้นทางนะคะ สู้ๆ ค่ะ!`;
+                speak(startMsg);
+                alert("ปล่อยตัวสำเร็จ! ขอให้โชคดีครับ");
             } else {
+                // 📍 ข้อความระหว่างทาง (CP1 - CP5)
                 const remain = 104 - dist;
-                speak(`บันทึกสำเร็จ คุณ ${currentRunner.name.trim()}. สะสมระยะทาง ${dist} กิโลเมตร. เหลืออีก ${remain} กิโลเมตรจะถึงเส้นชัย. สู้ต่อไปครับ!`);
-                alert("บันทึกจุดสำเร็จ!");
+                const progressMsg = `บันทึกสำเร็จ คุณถึง ${placeName} แล้วค่ะ สะสมระยะทางได้ ${dist} กิโลเมตร เหลืออีกเพียง ${remain.toFixed(1)} กิโลเมตร สู้ต่อไปนะคะคุณ ${currentRunner.name.trim()}!`;
+                speak(progressMsg);
+                alert(`เช็กอินที่ ${placeName} สำเร็จ!`);
             }
             cancelVerify();
         } catch(e) { alert("เกิดข้อผิดพลาดในการบันทึก"); }
