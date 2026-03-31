@@ -369,25 +369,33 @@
             const data = await res.json();
             const results = data.filter(r => String(r[2]) === bib);
             const reg = results.find(r => r[1] === 'REG');
+            
             if(reg) {
                 document.getElementById('myResultArea').style.display = 'block';
                 document.getElementById('myNameDisp').innerText = reg[3];
                 document.getElementById('myCatDisp').innerText = reg[8];
-                const lastPoint = results.filter(r => r[1] !== 'REG').sort((a,b) => b[5]-a[5])[0];
-                const dist = lastPoint ? lastPoint[5] : 0;
+                
+                // หาจุดล่าสุด
+                const runData = results.filter(r => r[1] === 'RUN').sort((a,b) => b[5]-a[5]);
+                const lastPoint = runData[0];
+                const dist = lastPoint ? parseFloat(lastPoint[5]) : 0;
+                
+                // แสดงสถิติแบบ Sunny
+                const lastTime = lastPoint ? new Date(lastPoint[0]).toLocaleTimeString('th-TH') : '--:--';
+                const lastPace = lastPoint ? lastPoint[10] : '-';
+                
                 document.getElementById('myDistDisp').innerText = dist;
-                document.getElementById('myRemDisp').innerText = 104 - dist;
+                document.getElementById('myRemDisp').innerText = (104 - dist).toFixed(1);
                 document.getElementById('myProgBar').style.width = (dist/104*100) + '%';
+                
+                // เพิ่มการแสดงผลวันที่/เวลา/Pace (ถ้าอาจารย์มี Element รองรับ)
+                alert(`สถิติล่าสุดของคุณ:\nระยะทาง: ${dist} กม.\nเวลาที่บันทึก: ${lastTime}\nPace: ${lastPace}`);
+
                 if(dist >= 104) {
-                    document.getElementById('certContainer').style.display = 'block';
-                    document.getElementById('certName').innerText = reg[3];
-                    document.getElementById('certTime').innerText = lastPoint[0];
-                    const sameCat = data.filter(r => r[8] === reg[8] && r[5] >= 104).sort((a,b) => new Date(a[0]) - new Date(b[0]));
-                    const rank = sameCat.findIndex(r => String(r[2]) === bib) + 1;
-                    document.getElementById('certRank').innerText = '#' + rank;
-                } else { document.getElementById('certContainer').style.display = 'none'; }
+                    // ... (โค้ดใบประกาศเดิม) ...
+                }
             } else { alert("ไม่พบข้อมูล BIB"); }
-        } catch(e) {}
+        } catch(e) { console.error(e); }
         showLoading(false);
     }
 
