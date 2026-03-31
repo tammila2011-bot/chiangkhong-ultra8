@@ -231,6 +231,7 @@
 </div>
 
 <script>
+    <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydLdWyNc2auPXPPZRyp3UBCX8caBJNCBm4Te2r9zazZDNuvgZbvBl6qvItABzQrBdtMQ/exec";
     const GUN_START_TIME = "2025-12-05T16:00:00"; 
     let currentRunner = null;
@@ -239,6 +240,7 @@
 
     function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
 
+    // --- 🎙️ ระบบเสียง AI ---
     function speak(text) {
         if (!window.speechSynthesis) return;
         window.speechSynthesis.cancel();
@@ -246,7 +248,7 @@
         msg.lang = 'th-TH'; msg.rate = 1.0;
         window.speechSynthesis.speak(msg);
     }
-    function unlockVoice() { speak("ระบบเสียง อัลตร้า หนึ่งศูนย์สี่ พร้อมดูแลนักสู้ทุกคนค่ะ"); }
+    function unlockVoice() { speak("ระบบเสียง อัลตร้า หนึ่งศูนย์สี่ พร้อมดูแลนักวิ่งค่ะ"); }
 
     function toggleMusic() {
         const audio = document.getElementById('bgMusic');
@@ -260,7 +262,29 @@
         if(clickCount >= 5) { new bootstrap.Modal('#adminModal').show(); clickCount = 0; }
     }
 
-    // --- 🔍 ตรวจสอบ BIB และ ปลุกปุ่มให้กะพริบ ---
+    // --- 📊 1. ฟังก์ชันโชว์สถิติ/ประวัติ (ที่เคยหายไป) ---
+    function showRunnerHistory(bib) {
+        const history = allRunners.filter(r => String(r[2]) === bib && r[1] === 'RUN');
+        let html = '<div class="card bg-black p-3 border-secondary small mt-3"><h6 class="text-warning small fw-bold border-bottom border-secondary pb-2 mb-2">ประวัติการสแกนจุด</h6>';
+        
+        if(history.length === 0) {
+            html += '<div class="text-center py-2 opacity-50">ยังไม่มีข้อมูลการสแกน</div>';
+        } else {
+            // เรียงจากกิโลเมตรล่าสุดขึ้นก่อน
+            history.sort((a,b) => b[5] - a[5]).forEach(h => {
+                html += `
+                <div class="d-flex justify-content-between border-bottom border-secondary py-2">
+                    <span>📍 ${h[7]} (${h[5]} กม.)</span>
+                    <span class="text-info">${h[10]} Pace</span>
+                </div>`;
+            });
+        }
+        html += '</div>';
+        const historyDiv = document.getElementById('runnerHistory');
+        if(historyDiv) historyDiv.innerHTML = html;
+    }
+
+    // --- 🔍 2. ตรวจสอบ BIB ---
     async function verifyStep1() {
         const bib = document.getElementById('scanBib').value.trim();
         if(!bib) return;
@@ -268,23 +292,27 @@
         try {
             const res = await fetch(SCRIPT_URL);
             allRunners = await res.json();
+            // ข้ามหัวตาราง (r[2] !== 'BIB')
             const runner = allRunners.find(r => String(r[2]) === bib && r[1] === 'REG');
             
             if(runner) {
                 currentRunner = { bib: bib, name: runner[3], cat: runner[8] };
                 document.getElementById('confirmName').innerText = runner[3];
                 document.getElementById('confirmBibDisplay').innerText = "BIB: " + bib;
+                
+                // เรียกโชว์สถิติ
+                showRunnerHistory(bib);
+
                 document.getElementById('scanStep1').style.display = 'none';
                 document.getElementById('scanStep2').style.display = 'block';
-                speak(`ยืนยันข้อมูล คุณ ${runner[3].trim()} หมายเลขบิบ ${bib} ค่ะ`);
-            } else { alert("ไม่พบข้อมูล BIB ในระบบลงทะเบียน"); }
+                speak(`ยืนยันข้อมูล คุณ ${runner[3].trim()} ค่ะ`);
+            } else { alert("ไม่พบข้อมูล BIB นี้ในระบบ"); }
         } catch(e) { alert("ฐานข้อมูลไม่ตอบสนอง"); }
         showLoading(false);
     }
 
-    // --- 🔐 ปลุกปุ่ม CP ให้สว่างเฉพาะจุดถัดไป ---
+    // --- 🔐 3. ปลดล็อกปุ่มกะพริบ ---
     async function unlockCPButtons() {
-        // หาจุดล่าสุดที่เคยบันทึก
         const myHistory = allRunners.filter(r => String(r[2]) === currentRunner.bib && r[1] === 'RUN');
         const maxDist = myHistory.reduce((max, r) => Math.max(max, parseFloat(r[5]) || 0), -1);
 
@@ -298,18 +326,17 @@
         buttons.forEach((btn, index) => {
             const targetDist = cpDistances[index];
             btn.classList.remove('btn-pulse');
-            
             if (targetDist <= maxDist) {
                 btn.disabled = true;
                 btn.style.opacity = "0.4";
-                btn.innerHTML = "✅ " + btn.innerHTML.split(') ')[1] || btn.innerHTML;
+                btn.innerHTML = "✅ " + (btn.innerHTML.includes(')') ? btn.innerHTML.split(') ')[1] : btn.innerHTML);
             } else if (index > 0 && cpDistances[index-1] > maxDist) {
                 btn.disabled = true;
                 btn.style.opacity = "0.2";
             } else {
                 btn.disabled = false;
                 btn.style.opacity = "1";
-                btn.classList.add('btn-pulse'); // สั่งให้กะพริบจุดเดียว
+                btn.classList.add('btn-pulse'); 
             }
         });
     }
@@ -321,12 +348,13 @@
         document.getElementById('scanStep3').style.display = 'none';
     }
 
-    // --- 📸 ระบบบังคับสแกนป้ายหน้าจุด ---
+    // --- 📸 4. ฟังก์ชันสแกน (บังคับกล้องขึ้น 100%) ---
     async function scanCP(targetCP, dist) {
         showLoading(true);
-        const html5QrCode = new Html5Qrcode("reader");
-        document.getElementById('reader').scrollIntoView({ behavior: 'smooth' });
+        const readerDiv = document.getElementById('reader');
+        readerDiv.scrollIntoView({ behavior: 'smooth' });
         
+        const html5QrCode = new Html5Qrcode("reader");
         html5QrCode.start(
             { facingMode: "environment" },
             { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -334,26 +362,17 @@
                 if (decodedText.includes(targetCP)) {
                     html5QrCode.stop().then(() => checkPoint(targetCP, dist));
                 } else {
-                    alert("❌ ผิดจุด! ป้ายนี้ไม่ใช่ของจุด " + targetCP);
+                    alert("❌ ผิดจุด! นี่ไม่ใช่จุด " + targetCP);
                 }
             }
         ).then(() => showLoading(false))
         .catch(err => { showLoading(false); alert("กรุณาเปิดกล้องครับ"); });
     }
 
-    // --- 📝 บันทึกสถิติพร้อมชื่อสถานที่จริง ---
+    // --- 📝 5. บันทึกผล ---
     async function checkPoint(cpCode, dist) {
         showLoading(true);
-        const cpNames = {
-            'Start': 'พิพิธภัณฑ์ศิลปะร่วมสมัยเมืองเชียงราย',
-            'CP1': 'หน้าห้างบิ๊กซี สนามบิน',
-            'CP2': 'โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านแซว',
-            'CP3': 'โรงพยาบาลส่งเสริมสุขภาพตำบลบ้านไร่',
-            'CP4': 'จุดชมวิวห้วยทรายมาน',
-            'CP5': 'วัดหาดไคร้',
-            'CP6': 'ศาลาหนึ่งศูนย์สี่ ระเบียงโขงเชียงของ'
-        };
-
+        const cpNames = { 'Start': 'จุดปล่อยตัว', 'CP1': 'หน้าบิ๊กซี', 'CP2': 'รพ.สต.บ้านแซว', 'CP3': 'รพ.สต.บ้านไร่', 'CP4': 'จุดชมวิวห้วยทรายมาน', 'CP5': 'วัดหาดไคร้', 'CP6': 'เส้นชัยศาลาหนึ่งศูนย์สี่' };
         const now = new Date();
         const start = new Date(GUN_START_TIME);
         const diffMin = (now - start) / 60000;
@@ -364,20 +383,14 @@
                 method: 'POST', mode: 'no-cors', 
                 body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) 
             });
-
-            const placeName = cpNames[cpCode] || cpCode;
-            if (dist >= 104) {
-                speak(`ยินดีด้วยคุณ ${currentRunner.name.trim()}! ถึง ${placeName} แล้วค่ะ พิชิต หนึ่งร้อยสี่ กิโลเมตรสำเร็จ คุณหัวใจเพชรมากค่ะ!`);
-                alert("🏁 Finish! " + currentRunner.name);
-            } else {
-                speak(`เช็คอิน ${placeName} สำเร็จ สะสมระยะทาง ${dist} กิโลเมตร สู้ต่อไปนะคะ!`);
-                alert("บันทึกสำเร็จที่ " + placeName);
-            }
-            cancelVerify();
+            speak(`บันทึกสำเร็จที่ ${cpNames[cpCode]} เรียบร้อยค่ะ`);
+            alert("บันทึกสำเร็จ!");
+            location.reload(); 
         } catch(e) { alert("บันทึกล้มเหลว"); }
         showLoading(false);
     }
 
+    // --- 🥇 6. ตารางอันดับ (กรองหัวตารางออก) ---
     async function loadRanking() {
         showLoading(true);
         try {
@@ -393,7 +406,8 @@
             document.querySelectorAll('#filterArea button').forEach(b => b.className = "btn btn-xs btn-outline-primary rounded-pill px-3");
             btn.className = "btn btn-xs btn-primary active rounded-pill px-3";
         }
-        const filtered = allRunners.filter(r => (cat === 'All' || r[8] === cat));
+        // กรองหัวตารางออก r[2] !== 'BIB' และ r[1] === 'RUN'
+        const filtered = allRunners.filter(r => r[1] === 'RUN' && r[2] !== 'BIB' && (cat === 'All' || r[8] === cat));
         const summary = {};
         filtered.forEach(r => {
             const bib = r[2]; const d = parseFloat(r[5]) || 0;
@@ -408,7 +422,7 @@
             let icon = (i === 0) ? '🥇' : (i === 1) ? '🥈' : (i === 2) ? '🥉' : i + 1;
             html += `<tr class="${rankClass}"><td>${icon}</td><td>${r.bib}</td><td>${r.name}<br><small>${r.cat}</small></td><td class="text-end text-primary">${r.dist} กม.<br><small>Pace: ${r.pace}</small></td></tr>`;
         });
-        document.getElementById('rankingBody').innerHTML = html || '<tr><td colspan="4 text-center">ไม่พบข้อมูล</td></tr>';
+        document.getElementById('rankingBody').innerHTML = html || '<tr><td colspan="4" class="text-center">ไม่พบข้อมูล</td></tr>';
     }
 
     function showNews() {
@@ -425,7 +439,7 @@
                 const data = { action: 'register', bib: document.getElementById('regBib').value, name: document.getElementById('regName').value, gender: document.getElementById('regGender').value, category: document.getElementById('regCategory').value };
                 try {
                     await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-                    alert("ลงทะเบียนคุณ " + data.name + " เรียบร้อย!");
+                    alert("ลงทะเบียนเรียบร้อย!");
                     myForm.reset();
                 } catch (error) { alert("เชื่อมต่อไม่สำเร็จ"); }
                 showLoading(false);
