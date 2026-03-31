@@ -278,6 +278,44 @@
             } else { alert("ไม่พบข้อมูล BIB"); }
         } catch(e) { alert("เชื่อมต่อฐานข้อมูลไม่ได้"); }
         showLoading(false);
+    }// --- 📸 1. ฟังก์ชันเปิดกล้องสแกน (วางต่อจาก verifyStep1) ---
+    function initScanner() {
+        // ตรวจสอบว่ามี element "reader" หรือไม่
+        if (!document.getElementById('reader')) return;
+        
+        const html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+                // เมื่อสแกนเจอค่า (BIB)
+                document.getElementById('scanBib').value = decodedText;
+                verifyStep1(); // สั่งตรวจสอบชื่อนักวิ่งทันที
+                html5QrCode.stop(); // สแกนติดแล้วให้หยุดกล้องเพื่อประหยัดแบต
+            }
+        ).catch(err => {
+            console.error("Camera error:", err);
+        });
+    }
+
+    // --- 📸 2. แก้ไขส่วนสแกนจุด CP (ให้บังคับสแกน QR หน้าจุดก่อนกดปุ่ม) ---
+    // เพิ่มฟังก์ชันนี้เพื่อใช้สแกน QR Code ประจำจุด CP1, CP2...
+    async function scanCP(targetCP, dist) {
+        const html5QrCode = new Html5Qrcode("reader");
+        document.getElementById('reader').scrollIntoView(); // เลื่อนหน้าจอมาที่กล้อง
+        
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+                if (decodedText.trim() === targetCP) {
+                    html5QrCode.stop();
+                    checkPoint(targetCP, dist); // ถ้า QR ถูกต้อง ให้บันทึกลง Sheet
+                } else {
+                    alert("❌ QR Code ไม่ถูกต้อง! นี่ไม่ใช่จุด " + targetCP);
+                }
+            }
+        ).catch(err => alert("กรุณาอนุญาตให้เข้าถึงกล้องครับ"));
     }
 
     // --- 🔐 ระบบคุมลำดับปุ่ม CP ---
