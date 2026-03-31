@@ -318,16 +318,44 @@
             document.querySelectorAll('#filterArea button').forEach(b => b.className = "btn btn-xs btn-outline-primary rounded-pill px-3");
             btn.className = "btn btn-xs btn-primary active rounded-pill px-3";
         }
-        const filtered = allRunners.filter(r => (cat === 'All' || r[8] === cat) && r[1] !== 'REG');
-        filtered.sort((a, b) => b[5] - a[5]);
+        
+        // 1. กรองประเภท
+        const filtered = allRunners.filter(r => (cat === 'All' || r[8] === cat));
+        
+        // 2. จัดกลุ่มตาม BIB (เอาเฉพาะค่าล่าสุดหรือระยะทางสูงสุด)
+        const summary = {};
+        filtered.forEach(r => {
+            const bib = r[2];
+            const dist = parseFloat(r[5]) || 0;
+            if (!summary[bib] || dist > summary[bib].dist) {
+                summary[bib] = {
+                    bib: bib,
+                    name: r[3],
+                    dist: dist,
+                    cat: r[8],
+                    pace: r[10] || '-',
+                    time: r[0]
+                };
+            }
+        });
+
+        // 3. แปลงเป็น Array แล้วเรียงลำดับ (ใครระยะเยอะสุดอยู่อันดับ 1)
+        const sorted = Object.values(summary).sort((a, b) => b.dist - a.dist);
+
         let html = '';
-        filtered.forEach((r, i) => {
+        sorted.forEach((r, i) => {
             let rankClass = '';
             let icon = i + 1;
             if(i === 0) { rankClass = 'rank-1'; icon = '🥇'; }
             else if(i === 1) { rankClass = 'rank-2'; icon = '🥈'; }
             else if(i === 2) { rankClass = 'rank-3'; icon = '🥉'; }
-            html += `<tr class="${rankClass}"><td>${icon}</td><td>${r[2]}</td><td>${r[3]}<br><small class="text-muted">${r[8]}</small></td><td class="text-end fw-bold text-primary">${r[5]} กม.<br><small class="text-white">Pace: ${r[10] || '-'}</small></td></tr>`;
+            
+            html += `<tr class="${rankClass}">
+                <td>${icon}</td>
+                <td>${r.bib}</td>
+                <td>${r.name}<br><small class="text-muted">${r.cat}</small></td>
+                <td class="text-end fw-bold text-primary">${r.dist} กม.<br><small class="text-white">Pace: ${r.pace}</small></td>
+            </tr>`;
         });
         document.getElementById('rankingBody').innerHTML = html || '<tr><td colspan="4" class="text-center">ไม่พบข้อมูล</td></tr>';
     }
