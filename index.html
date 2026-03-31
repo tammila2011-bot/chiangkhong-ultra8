@@ -301,32 +301,43 @@
     // --- 📸 2. แก้ไขส่วนสแกนจุด CP (ให้บังคับสแกน QR หน้าจุดก่อนกดปุ่ม) ---
     // เพิ่มฟังก์ชันนี้เพื่อใช้สแกน QR Code ประจำจุด CP1, CP2...
     // --- 📸 ฟังก์ชันสแกนจุดจากป้าย QR ของอาจารย์ (ฉบับรองรับลิงก์ GitHub) ---
+    // --- 📸 ระบบบังคับสแกนป้ายหน้าจุด (จูนให้กล้องเด้ง 100%) ---
     async function scanCP(targetCP, dist) {
-        if (!document.getElementById('reader')) {
-            alert("ไม่พบส่วนแสดงผลกล้อง");
+        if (!currentRunner) {
+            alert("กรุณาตรวจสอบ BIB นักวิ่งก่อนครับ");
             return;
         }
-
-        const html5QrCode = new Html5Qrcode("reader");
-        // เลื่อนหน้าจอลงมาให้เห็นกล้องชัดๆ
-        document.getElementById('reader').scrollIntoView({ behavior: 'smooth' });
         
+        // 1. แสดงตัว Loading แป๊บหนึ่งเพื่อให้ระบบเตรียมกล้อง
+        showLoading(true);
+        
+        const html5QrCode = new Html5Qrcode("reader");
+        
+        // 2. เลื่อนหน้าจอไปที่จุดแสดงผลกล้อง (Element ID: reader)
+        const readerElement = document.getElementById('reader');
+        readerElement.scrollIntoView({ behavior: 'smooth' });
+
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
         html5QrCode.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
+            { facingMode: "environment" }, 
+            config,
             (decodedText) => {
-                // 🔍 ตรวจสอบว่าสิ่งที่สแกนมามีรหัสจุด (เช่น CP1) อยู่ในข้อความไหม
-                // รองรับทั้งแบบ URL และแบบข้อความธรรมดา
+                // ✅ ถ้าสแกนเจอลิงก์หรือข้อความที่มีชื่อจุด (เช่น CP1)
                 if (decodedText.includes(targetCP)) {
-                    html5QrCode.stop();
-                    checkPoint(targetCP, dist); // ส่งบันทึกข้อมูล
+                    html5QrCode.stop().then(() => {
+                        checkPoint(targetCP, dist); // 🚀 ไปบันทึกลง Sheet
+                    });
                 } else {
-                    // แจ้งเตือนกรณีสแกนผิดจุด
-                    alert("❌ จุดไม่ถูกต้อง! คุณกำลังอยู่ที่ " + targetCP + " แต่ไปสแกนจุดอื่นครับ");
+                    alert("❌ จุดไม่ถูกต้อง! ป้ายนี้ไม่ใช่ของ " + targetCP);
                 }
             }
-        ).catch(err => {
-            alert("กรุณาอนุญาตให้แอปเข้าถึงกล้องเพื่อสแกนจุดครับ");
+        ).then(() => {
+            showLoading(false); // ปิด Loading เมื่อกล้องมาแล้ว
+        }).catch(err => {
+            showLoading(false);
+            console.error(err);
+            alert("ไม่สามารถเปิดกล้องได้: กรุณาตรวจสอบการอนุญาตสิทธิ์กล้องใน Browser ครับ");
         });
     }
 
