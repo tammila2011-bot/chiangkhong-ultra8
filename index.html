@@ -269,19 +269,48 @@
         showLoading(false);
     }
 
-    function unlockCPButtons() {
-        document.getElementById('scanStep2').style.display = 'none';
-        document.getElementById('scanStep3').style.display = 'block';
-        document.getElementById('activeRunnerName').innerText = currentRunner.name;
+    // --- 🔐 ระบบคุมลำดับปุ่ม CP ---
+    async function unlockCPButtons() {
+        showLoading(true);
+        try {
+            const res = await fetch(SCRIPT_URL);
+            const data = await res.json();
+            // หาจุดล่าสุดที่นักวิ่งคนนี้เคยสแกน (นับจากระยะทาง dist สูงสุด)
+            const myHistory = data.filter(r => String(r[2]) === currentRunner.bib && r[1] === 'RUN');
+            const maxDist = myHistory.reduce((max, r) => Math.max(max, parseFloat(r[5]) || 0), -1);
+
+            document.getElementById('scanStep2').style.display = 'none';
+            document.getElementById('scanStep3').style.display = 'block';
+            document.getElementById('activeRunnerName').innerText = currentRunner.name;
+
+            // คุมการเปิด-ปิดปุ่มตามระยะทาง
+            const buttons = document.querySelectorAll('.btn-checkpoint');
+            const cpDistances = [0, 7, 56, 72, 89, 103, 104]; // ระยะของแต่ละปุ่ม
+
+            buttons.forEach((btn, index) => {
+                const targetDist = cpDistances[index];
+                
+                if (targetDist <= maxDist) {
+                    // จุดที่ผ่านไปแล้ว -> สีจาง + กดไม่ได้
+                    btn.disabled = true;
+                    btn.style.opacity = "0.4";
+                    btn.innerHTML = btn.innerHTML.replace('📍', '✅').replace('🚩', '✅');
+                } else if (index > 0 && cpDistances[index-1] > maxDist) {
+                    // จุดที่ยังไม่ถึง (และไม่ใช่จุดถัดไป) -> สีจาง + กดไม่ได้
+                    btn.disabled = true;
+                    btn.style.opacity = "0.4";
+                } else {
+                    // จุดถัดไปที่ต้องสแกน -> สีสด + กดได้
+                    btn.disabled = false;
+                    btn.style.opacity = "1";
+                    btn.classList.add('btn-pulse'); // เพิ่ม Animation ให้ปุ่มเด่น
+                }
+            });
+        } catch(e) { alert("โหลดข้อมูลลำดับผิดพลาด"); }
+        showLoading(false);
     }
 
-    function cancelVerify() {
-        currentRunner = null;
-        document.getElementById('scanStep1').style.display = 'block';
-        document.getElementById('scanStep2').style.display = 'none';
-        document.getElementById('scanStep3').style.display = 'none';
-    }
-
+    // --- 📝 แก้ไขฟังก์ชันบันทึก CP ---
     async function checkPoint(cpCode, dist) {
         if(!currentRunner) return;
         showLoading(true);
@@ -289,17 +318,29 @@
         const start = new Date(GUN_START_TIME);
         const diffMin = (now - start) / 60000;
         const pace = dist > 0 ? (diffMin / dist).toFixed(2) : "0.00";
+        
         try {
             await fetch(SCRIPT_URL, { 
                 method: 'POST', 
                 mode: 'no-cors', 
-                body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) 
+                body: JSON.stringify({ 
+                    action: 'record', bib: currentRunner.bib, end: cpCode, 
+                    distance: dist, pace: pace 
+                }) 
             });
-            const remain = 104 - dist;
-            speak(`บันทึกสำเร็จ คุณ ${currentRunner.name.trim()}. สะสมระยะทาง ${dist} กิโลเมตร. เหลืออีก ${remain} กิโลเมตรจะถึงเส้นชัย. สู้ต่อไปครับ!`);
-            alert("บันทึกสำเร็จ!");
+
+            if (dist >= 104) {
+                // 🏆 ข้อความฉลองชัยฉบับจัดเต็ม
+                const finishMsg = `ขอแสดงความยินดีกับคุณ ${currentRunner.name.trim()}! พิชิตระยะทางหนึ่งร้อยสี่กิโลเมตรสำเร็จแล้วค่ะ คุณเก่งจริง!`;
+                speak(finishMsg);
+                alert(`🏁 สำเร็จสมบูรณ์!\nยินดีด้วยคุณ ${currentRunner.name}\nจบระยะ 104 กม. เรียบร้อย!`);
+            } else {
+                const remain = 104 - dist;
+                speak(`บันทึกสำเร็จ คุณ ${currentRunner.name.trim()}. สะสมระยะทาง ${dist} กิโลเมตร. เหลืออีก ${remain} กิโลเมตรจะถึงเส้นชัย. สู้ต่อไปครับ!`);
+                alert("บันทึกจุดสำเร็จ!");
+            }
             cancelVerify();
-        } catch(e) { alert("เกิดข้อผิดพลาด"); }
+        } catch(e) { alert("เกิดข้อผิดพลาดในการบันทึก"); }
         showLoading(false);
     }
 
