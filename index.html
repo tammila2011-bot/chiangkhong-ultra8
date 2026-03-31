@@ -300,22 +300,34 @@
 
     // --- 📸 2. แก้ไขส่วนสแกนจุด CP (ให้บังคับสแกน QR หน้าจุดก่อนกดปุ่ม) ---
     // เพิ่มฟังก์ชันนี้เพื่อใช้สแกน QR Code ประจำจุด CP1, CP2...
+    // --- 📸 ฟังก์ชันสแกนจุดจากป้าย QR ของอาจารย์ (ฉบับรองรับลิงก์ GitHub) ---
     async function scanCP(targetCP, dist) {
+        if (!document.getElementById('reader')) {
+            alert("ไม่พบส่วนแสดงผลกล้อง");
+            return;
+        }
+
         const html5QrCode = new Html5Qrcode("reader");
-        document.getElementById('reader').scrollIntoView(); // เลื่อนหน้าจอมาที่กล้อง
+        // เลื่อนหน้าจอลงมาให้เห็นกล้องชัดๆ
+        document.getElementById('reader').scrollIntoView({ behavior: 'smooth' });
         
         html5QrCode.start(
             { facingMode: "environment" },
             { fps: 10, qrbox: { width: 250, height: 250 } },
             (decodedText) => {
-                if (decodedText.trim() === targetCP) {
+                // 🔍 ตรวจสอบว่าสิ่งที่สแกนมามีรหัสจุด (เช่น CP1) อยู่ในข้อความไหม
+                // รองรับทั้งแบบ URL และแบบข้อความธรรมดา
+                if (decodedText.includes(targetCP)) {
                     html5QrCode.stop();
-                    checkPoint(targetCP, dist); // ถ้า QR ถูกต้อง ให้บันทึกลง Sheet
+                    checkPoint(targetCP, dist); // ส่งบันทึกข้อมูล
                 } else {
-                    alert("❌ QR Code ไม่ถูกต้อง! นี่ไม่ใช่จุด " + targetCP);
+                    // แจ้งเตือนกรณีสแกนผิดจุด
+                    alert("❌ จุดไม่ถูกต้อง! คุณกำลังอยู่ที่ " + targetCP + " แต่ไปสแกนจุดอื่นครับ");
                 }
             }
-        ).catch(err => alert("กรุณาอนุญาตให้เข้าถึงกล้องครับ"));
+        ).catch(err => {
+            alert("กรุณาอนุญาตให้แอปเข้าถึงกล้องเพื่อสแกนจุดครับ");
+        });
     }
 
     // --- 🔐 ระบบคุมลำดับปุ่ม CP ---
