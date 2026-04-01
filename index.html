@@ -325,44 +325,17 @@
     }
 
     async function unlockCPButtons() {
-        if (!currentRunner) return;
-        
-        // 1. คำนวณระยะสูงสุดที่เคยไปถึง
-        const history = allData.filter(r => String(r[2]) === currentRunner.bib && r[1] === 'RUN');
-        const maxDist = history.reduce((max, r) => Math.max(max, parseFloat(r[5]) || 0), -1);
-        
-        // 2. สลับหน้าจอ
         document.getElementById('scanStep2').style.display = 'none';
         const step3 = document.getElementById('scanStep3');
         step3.style.display = 'block';
         document.getElementById('activeRunnerName').innerText = currentRunner.name;
         
-        // 🚀 3. จั๊มหน้าจอลงมาทันที
-        setTimeout(() => {
-            step3.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
+        // 🚀 จั๊มมาที่หัวหน้า Step 3 ครั้งเดียว
+        window.scrollTo({ top: step3.offsetTop - 20, behavior: 'smooth' });
 
-        // 4. จัดการสถานะปุ่ม (กะพริบเฉพาะจุดถัดไป)
-        const dists = [0, 7, 56, 72, 89, 103, 104];
-        document.querySelectorAll('.btn-checkpoint').forEach((btn, i) => {
-            btn.classList.remove('btn-pulse');
-            if(dists[i] <= maxDist) { 
-                btn.disabled = true; 
-                btn.style.opacity = "0.3"; 
-                btn.innerHTML = "✅ " + (btn.innerText.includes(')') ? btn.innerText.split(') ')[1] : btn.innerText); 
-            }
-            else if(i > 0 && dists[i-1] > maxDist) { 
-                btn.disabled = true; 
-                btn.style.opacity = "0.1"; 
-            }
-            else { 
-                btn.disabled = false;
-                btn.style.opacity = "1";
-                btn.classList.add('btn-pulse'); 
-            }
-        });
+        // ... โค้ดคุมปุ่มกะพริบ (ใช้ของเดิมได้เลย) ...
         
-        speak(`ยืนยันข้อมูลเรียบร้อยค่ะ กรุณากดปุ่มที่กะพริบเพื่อสแกนจุดถัดไปของคุณ ${currentRunner.name} ค่ะ`);
+        speak(`ยืนยันข้อมูลเรียบร้อยค่ะ เลือกจุดที่ต้องการสแกนได้เลยค่ะ`);
     }
 
     async function checkPoint(cpCode, dist) {
