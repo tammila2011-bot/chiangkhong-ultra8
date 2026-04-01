@@ -324,19 +324,34 @@
         showLoading(false);
     }
 
-    function unlockCPButtons() {
+    async function unlockCPButtons() {
         const history = allData.filter(r => String(r[2]) === currentRunner.bib && r[1] === 'RUN');
         const maxDist = history.reduce((max, r) => Math.max(max, parseFloat(r[5]) || 0), -1);
+        
         document.getElementById('scanStep2').style.display = 'none';
         document.getElementById('scanStep3').style.display = 'block';
         document.getElementById('activeRunnerName').innerText = currentRunner.name;
         
+        // 🚀 จั๊มหน้าจอลงมาที่ส่วนของปุ่มสแกนทันที
+        document.getElementById('scanStep3').scrollIntoView({ behavior: 'smooth' });
+
         const dists = [0, 7, 56, 72, 89, 103, 104];
         document.querySelectorAll('.btn-checkpoint').forEach((btn, i) => {
-            if(dists[i] <= maxDist) { btn.disabled = true; btn.style.opacity = "0.3"; btn.innerHTML = "✅ " + btn.innerText; }
-            else if(i > 0 && dists[i-1] > maxDist) { btn.disabled = true; btn.style.opacity = "0.1"; }
-            else { btn.classList.add('btn-pulse'); }
+            if(dists[i] <= maxDist) { 
+                btn.disabled = true; 
+                btn.style.opacity = "0.3"; 
+                btn.innerHTML = "✅ " + (btn.innerText.includes(')') ? btn.innerText.split(') ')[1] : btn.innerText); 
+            }
+            else if(i > 0 && dists[i-1] > maxDist) { 
+                btn.disabled = true; 
+                btn.style.opacity = "0.1"; 
+            }
+            else { 
+                btn.classList.add('btn-pulse'); 
+            }
         });
+        
+        speak(`ยืนยันตัวตนสำเร็จค่ะ กรุณากดปุ่มที่กะพริบเพื่อสแกนจุดถัดไปของคุณ ${currentRunner.name} ค่ะ`);
     }
 
     async function checkPoint(cpCode, dist) {
