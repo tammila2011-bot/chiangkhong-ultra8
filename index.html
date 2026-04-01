@@ -78,6 +78,9 @@
     <div class="alert alert-dark text-center fw-bold border-warning mb-3">
         🏁 จุดเช็คอินสำหรับ: <span id="activeRunnerName" class="text-warning"></span>
     </div>
+
+    <div id="reader" style="width: 100%; min-height: 250px; background: #111; border-radius: 15px; margin-bottom: 15px; display: none;"></div>
+
     <div class="d-grid" id="btnArea">
         <button class="btn btn-dark btn-checkpoint" onclick="scanCP('Start', 0)">🚩 Start (กม.0)</button>
         <button class="btn btn-success btn-checkpoint" onclick="scanCP('CP1', 7)">📍 CP-1 (กม.7)</button>
@@ -195,41 +198,38 @@
         }
     }
 
-    // --- 📸 แก้ไขระบบสแกนจุด CP ให้เด้งชัวร์เหมือนหน้าแรก ---
     async function scanCP(targetCP, dist) {
         if (!currentRunner) return;
-        
-        const reader = document.getElementById('reader');
-        reader.style.display = 'block';
-        reader.scrollIntoView({behavior: 'smooth'});
-        
-        // หยุดตัวเก่าก่อน (ถ้ามี)
+
+        const readerDiv = document.getElementById('reader');
+        readerDiv.style.display = 'block'; // สั่งกล้องโผล่ทันที
+
+        speak(`กรุณาสแกนคิวอาร์โค้ดประจำจุด ${targetCP} ค่ะ`);
+
         if (html5QrCode && html5QrCode.isScanning) {
             await html5QrCode.stop();
         }
 
-        speak(`กรุณาสแกน QR Code ประจำจุด ${targetCP} ค่ะ`);
-        
         if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-        
+
         try {
             await html5QrCode.start(
                 { facingMode: "environment" }, 
                 { fps: 10, qrbox: 250 }, 
                 (text) => {
-                    // ตรวจสอบความถูกต้องของป้าย QR
                     if (text.includes(targetCP)) {
                         html5QrCode.stop().then(() => {
-                            reader.style.display = 'none';
-                            checkPoint(targetCP, dist); // บันทึกข้อมูล
+                            readerDiv.style.display = 'none'; // สแกนเสร็จซ่อนกล้อง
+                            checkPoint(targetCP, dist); 
                         });
                     } else {
-                        speak("ขออภัยค่ะ ป้ายไม่ถูกต้อง กรุณาสแกนป้ายของจุด " + targetCP);
+                        speak("ขออภัยค่ะ ป้ายไม่ถูกต้อง กรุณาสแกนจุด " + targetCP);
                         alert("❌ ผิดจุด! นี่ไม่ใช่ป้าย " + targetCP);
                     }
                 }
             );
         } catch (err) {
+            console.error(err);
             alert("เปิดกล้องไม่ได้: " + err);
         }
     }
