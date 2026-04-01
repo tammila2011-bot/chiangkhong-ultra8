@@ -199,22 +199,58 @@
     }
 
     // --- 4. ปรับระบบกล้อง ---
+    // --- 📸 ฟังก์ชันสแกนจุด (เวอร์ชันบังคับเปิดกล้อง 100%) ---
+    let scanner = null; // สร้างตัวแปรไว้ข้างนอกเพื่อคุมการเปิด-ปิด
+
     async function scanCP(targetCP, dist) {
-        const reader = document.getElementById('reader');
-        reader.style.display = 'block';
-        reader.scrollIntoView({behavior: 'smooth'});
-        const scanner = new Html5Qrcode("reader");
-        
+        const readerDiv = document.getElementById('reader');
+        readerDiv.style.display = 'block'; // บังคับให้แสดง Div กล้อง
+        readerDiv.scrollIntoView({ behavior: 'smooth' });
+
         speak(`เปิดกล้องสแกนจุด ${targetCP} ค่ะ`);
-        
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            if (text.includes(targetCP)) {
-                scanner.stop().then(() => {
-                    reader.style.display = 'none';
-                    checkPoint(targetCP, dist);
-                });
-            } else { speak("ผิดจุดค่ะ ลองสแกนใหม่นะคะ"); alert("ผิดจุด! นี่ไม่ใช่ " + targetCP); }
-        }).catch(err => { alert("เปิดกล้องไม่สำเร็จ กรุณากดอนุญาตสิทธิ์กล้องครับ"); });
+
+        // 1. ถ้ามี scanner ค้างอยู่ให้สั่งหยุดและล้างทิ้งก่อน
+        if (scanner) {
+            try {
+                await scanner.stop();
+            } catch (e) {
+                console.log("Scanner was not running");
+            }
+            scanner = null;
+        }
+
+        // 2. สร้าง instance ใหม่
+        scanner = new Html5Qrcode("reader");
+
+        const config = { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0 
+        };
+
+        // 3. เริ่มทำงาน
+        scanner.start(
+            { facingMode: "environment" }, 
+            config, 
+            (decodedText) => {
+                // ✅ สแกนติด
+                if (decodedText.includes(targetCP)) {
+                    speak(`ถูกต้องค่ะ บันทึกข้อมูลจุด ${targetCP}`);
+                    scanner.stop().then(() => {
+                        readerDiv.style.display = 'none';
+                        checkPoint(targetCP, dist);
+                    });
+                } else {
+                    speak("ผิดจุดค่ะ นี่ไม่ใช่ป้ายของ " + targetCP);
+                    alert("❌ ผิดจุด! นี่ไม่ใช่ป้ายของ " + targetCP);
+                }
+            }
+        ).catch(err => {
+            // ❌ ถ้าเปิดกล้องไม่ได้
+            console.error(err);
+            speak("ไม่สามารถเข้าถึงกล้องได้ค่ะ กรุณาตรวจสอบสิทธิ์การใช้งานนะคะ");
+            alert("⚠️ กล้องไม่ทำงาน: กรุณากดอนุญาตให้เข้าถึงกล้อง หรือตรวจสอบว่าหน้าเว็บเป็น https:// หรือยังครับ");
+        });
     }
 
     // --- 5. Pop-up พร้อมเสียงพูด ---
