@@ -8,76 +8,66 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --primary: #8e6d31; --primary-light: #b59451; --dark-bg: #000; --card-bg: rgba(255,255,255,0.05); }
-        body { background-color: var(--dark-bg); color: #eee; font-family: 'Prompt', sans-serif; min-height: 100vh; padding-bottom: 100px; margin: 0; }
-        .main-header { background: #000; padding: 0; border-bottom: 3px solid var(--primary); overflow: hidden; line-height: 0; cursor: pointer; }
-        .logo-img { width: 100%; height: auto; display: block; filter: brightness(1.1) contrast(1.1); }
+        body { background-color: var(--dark-bg); color: #eee; font-family: 'Prompt', sans-serif; min-height: 100vh; padding-bottom: 120px; margin: 0; }
+        .main-header { background: #000; border-bottom: 3px solid var(--primary); line-height: 0; cursor: pointer; }
+        .logo-img { width: 100%; height: auto; display: block; }
         .nav-pills .nav-link { color: #aaa; border-radius: 50px; font-size: 0.85rem; }
         .nav-pills .nav-link.active { background-color: var(--primary); color: #000; font-weight: 600; }
-        .card { border: 1px solid #333; border-radius: 20px; background: var(--card-bg); margin-bottom: 15px; backdrop-filter: blur(10px); }
-        .bottom-dashboard { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(15, 15, 15, 0.95); border-top: 2px solid var(--primary); padding: 10px 0; z-index: 1000; }
-        .btn-dash-sm { background: transparent; border: none; color: #888; text-align: center; font-size: 0.7rem; width: 100%; }
-        .btn-dash-sm i { font-size: 1.4rem; display: block; margin-bottom: 2px; }
-        .btn-dash-sm.active, .btn-dash-sm:hover { color: var(--primary-light); }
+        .card { border: 1px solid #333; border-radius: 20px; background: var(--card-bg); margin-bottom: 15px; }
+        .bottom-dashboard { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(15, 15, 15, 0.98); border-top: 2px solid var(--primary); padding: 10px 0; z-index: 1050; }
+        .btn-dash-sm { background: transparent; border: none; color: #888; font-size: 0.7rem; width: 100%; }
+        .btn-dash-sm i { font-size: 1.4rem; display: block; }
+        .btn-dash-sm.active { color: var(--primary-light); }
         .btn-sos { color: #ff4444 !important; }
-        #reader { width: 100%; border-radius: 15px; border: 2px solid var(--primary); overflow: hidden; background: #111; }
-        .btn-checkpoint { height: 60px; font-weight: 600; border-radius: 15px; transition: 0.3s; }
+        #reader { width: 100%; border-radius: 15px; border: 2px solid var(--primary); background: #111; display: none; }
+        .btn-pulse { animation: pulse-green 2s infinite; border: 2px solid #fff !important; }
+        @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(40,167,69,0.7); } 70% { box-shadow: 0 0 0 15px rgba(40,167,69,0); } 100% { box-shadow: 0 0 0 0 rgba(40,167,69,0); } }
         #loading { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:none; justify-content:center; align-items:center; }
-        .btn-pulse { animation: pulse-green 2s infinite; border: 2px solid #fff !important; transform: scale(1.02); }
-        @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(40, 167, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); } }
-        .rank-1 { background: linear-gradient(90deg, rgba(255,215,0,0.1), transparent) !important; border-left: 5px solid #ffd700 !important; }
     </style>
 </head>
 <body>
 
 <div id="loading"><div class="spinner-border text-primary"></div></div>
 
-<header class="main-header" onclick="handleLogoClick()">
-    <img src="loco.png" alt="ULTRA 104" class="logo-img">
-</header>
+<header class="main-header" onclick="handleLogoClick()"><img src="loco.png" alt="ULTRA 104" class="logo-img"></header>
 
 <div class="container mt-3">
     <div class="text-center mb-3">
-        <div style="background: rgba(142, 109, 49, 0.1); border: 1px solid var(--primary); border-radius: 50px; padding: 5px 15px; display: inline-flex; align-items:center; gap: 10px;">
-            <span class="small fw-bold">🎵 104 Song</span>
-            <button class="btn btn-sm btn-primary rounded-circle" onclick="toggleMusic()"><i id="playIcon" class="bi bi-play-fill"></i></button>
-            <audio id="bgMusic" src="104 song.mp3" loop></audio>
-        </div>
+        <button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="toggleMusic()">🎵 104 Song <i id="playIcon" class="bi bi-play-fill"></i></button>
+        <audio id="bgMusic" src="104 song.mp3" loop></audio>
     </div>
 
     <ul class="nav nav-pills nav-fill mb-3 bg-dark p-1 rounded-pill shadow" id="mainTab">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-scan">สแกนจุด</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-reg">ลงทะเบียน</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-stat" onclick="loadRanking()">อันดับ</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-me">ผลงาน</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-me" onclick="loadMyResult()">ผลงาน</button></li>
     </ul>
 
-    <div class="tab-content">
+    <div class="tab-content pb-5">
         <div class="tab-pane fade show active" id="tab-scan">
-            <div class="card p-3 shadow-lg">
+            <div class="card p-3">
                 <div id="scanStep1">
                     <div class="input-group mb-3">
-                        <input type="text" id="scanBib" class="form-control form-control-lg text-center fw-bold bg-dark text-white border-secondary" placeholder="ระบุเลข BIB">
-                        <button class="btn btn-warning fw-bold px-4" onclick="verifyStep1()">🔍 ตรวจสอบ</button>
+                        <input type="text" id="scanBib" class="form-control text-center bg-dark text-white border-secondary" placeholder="ระบุเลข BIB">
+                        <button class="btn btn-warning fw-bold" onclick="verifyStep1()">ตรวจสอบ</button>
                     </div>
                     <div id="reader"></div>
                 </div>
-
-                <div id="scanStep2" style="display:none;" class="text-center py-4">
-                    <h2 class="text-primary fw-bold mb-1" id="confirmName">---</h2>
-                    <span class="badge bg-secondary mb-3 fs-6" id="confirmBibDisplay">BIB: ---</span>
-                    <div id="runnerHistory" class="text-start mb-4"></div>
-                    <div class="d-grid gap-3">
-                        <button class="btn btn-success btn-lg fw-bold py-3 rounded-4" onclick="unlockCPButtons()">✅ ยืนยันข้อมูลถูกต้อง</button>
-                        <button class="btn btn-outline-danger btn-sm border-0" onclick="cancelVerify()">❌ ยกเลิก</button>
+                <div id="scanStep2" style="display:none;" class="text-center py-3">
+                    <h2 class="text-primary fw-bold" id="confirmName">---</h2>
+                    <span class="badge bg-secondary mb-3" id="confirmBibDisplay">BIB: ---</span>
+                    <div id="runnerHistory"></div>
+                    <div class="d-grid gap-2 mt-3">
+                        <button class="btn btn-success btn-lg fw-bold py-3 rounded-4" onclick="unlockCPButtons()">ยืนยันข้อมูล</button>
+                        <button class="btn btn-link text-danger text-decoration-none" onclick="cancelVerify()">ยกเลิก</button>
                     </div>
                 </div>
-
                 <div id="scanStep3" style="display:none;">
-                    <div class="alert alert-warning py-2 small text-center fw-bold mb-3">เป้าหมายต่อไปของคุณ: <span id="activeRunnerName"></span></div>
-                    <div class="d-grid gap-2" id="btnArea">
+                    <div class="alert alert-dark text-center fw-bold border-warning mb-3">นักวิ่ง: <span id="activeRunnerName"></span></div>
+                    <div class="d-grid gap-2">
                         <button class="btn btn-dark btn-checkpoint" onclick="scanCP('Start', 0)">🚩 Start (กม.0)</button>
                         <button class="btn btn-success btn-checkpoint" onclick="scanCP('CP1', 7)">📍 CP-1 (กม.7)</button>
                         <button class="btn btn-success btn-checkpoint" onclick="scanCP('CP2', 56)">📍 CP-2 (กม.56)</button>
@@ -93,61 +83,56 @@
         <div class="tab-pane fade" id="tab-reg">
             <div class="card p-4">
                 <h5 class="fw-bold mb-4 text-primary">ลงทะเบียนนักวิ่ง</h5>
-                <form id="regForm" onsubmit="return false;">
-                    <div class="mb-3"><label class="small text-muted">BIB</label><input type="text" id="regBib" class="form-control" required></div>
+                <form id="regForm">
+                    <div class="mb-3"><label class="small text-muted">เลข BIB</label><input type="text" id="regBib" class="form-control" required></div>
                     <div class="mb-3"><label class="small text-muted">ชื่อ-นามสกุล</label><input type="text" id="regName" class="form-control" required></div>
                     <div class="row g-2 mb-4">
                         <div class="col-6"><label class="small text-muted">เพศ</label><select id="regGender" class="form-select"><option value="M">ชาย</option><option value="F">หญิง</option></select></div>
-                        <div class="col-6"><label class="small text-muted">ประเภท</label><select id="regCategory" class="form-select"><option value="Solo">เดี่ยว</option><option value="Couple">ผลัด 2</option><option value="Team3">ผลัด 3</option><option value="Team10">ผลัด 10</option></select></div>
+                        <div class="col-6"><label class="small text-muted">ประเภท</label><select id="regCategory" class="form-select"><option value="Solo">เดี่ยว</option><option value="Team">ผลัด</option></select></div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 fw-bold py-3">ลงทะเบียน</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-3">บันทึกข้อมูล</button>
                 </form>
             </div>
         </div>
 
         <div class="tab-pane fade" id="tab-stat">
             <div class="card p-3">
-                <div class="d-flex justify-content-between mb-3"><h6>อันดับ Live</h6><button class="btn btn-sm btn-outline-warning" onclick="loadRanking()">🔄 รีเฟรช</button></div>
-                <div class="table-responsive"><table class="table table-dark small"><thead><tr><th>#</th><th>BIB</th><th>ชื่อ</th><th class="text-end">ระยะ</th></tr></thead><tbody id="rankingBody"></tbody></table></div>
+                <h6 class="fw-bold text-warning mb-3">Live Ranking 104 Km.</h6>
+                <div class="table-responsive text-white small">
+                    <table class="table table-dark"><thead><tr><th>#</th><th>BIB</th><th>ชื่อ</th><th class="text-end">ระยะ</th></tr></thead><tbody id="rankingBody"></tbody></table>
+                </div>
             </div>
         </div>
 
         <div class="tab-pane fade" id="tab-me">
-            <div class="card p-3 text-center">
-                <h6>ตรวจสอบสถิติส่วนตัวได้ที่หน้าสแกนจุด</h6>
-                <p class="small text-muted">กรอก BIB เพื่อดูประวัติการวิ่งย้อนหลัง</p>
+            <div class="card p-4 text-center">
+                <h5 class="fw-bold text-primary mb-3">ตรวจสอบผลงานส่วนตัว</h5>
+                <input type="text" id="meBib" class="form-control text-center mb-3 bg-dark text-white border-primary" placeholder="ใส่เลข BIB ของคุณ">
+                <button class="btn btn-warning w-100 fw-bold" onclick="loadMyResult()">ดูผลการแข่งขัน</button>
+                <div id="meContent" class="mt-4 text-start"></div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="bottom-dashboard">
-    <div class="container"><div class="row text-center">
-        <div class="col-3"><button class="btn-dash-sm" onclick="showNews()"><i class="bi bi-megaphone"></i>ข่าวสาร</button></div>
-        <div class="col-3"><button class="btn-dash-sm" data-bs-toggle="modal" data-bs-target="#staffModal"><i class="bi bi-people"></i>ทีมงาน</button></div>
-        <div class="col-3"><button class="btn-dash-sm btn-sos" data-bs-toggle="modal" data-bs-target="#sosModal"><i class="bi bi-heart-pulse"></i>SOS</button></div>
-        <div class="col-3"><button class="btn-dash-sm" onclick="unlockVoice()"><i class="bi bi-volume-up"></i>เสียง AI</button></div>
-    </div></div>
-</div>
+<div class="bottom-dashboard"><div class="container"><div class="row text-center">
+    <div class="col-3"><button class="btn-dash-sm" onclick="showMsg('news')"><i class="bi bi-megaphone"></i>ข่าวสาร</button></div>
+    <div class="col-3"><button class="btn-dash-sm" onclick="showMsg('staff')"><i class="bi bi-people"></i>ทีมงาน</button></div>
+    <div class="col-3"><button class="btn-dash-sm btn-sos" onclick="showMsg('sos')"><i class="bi bi-heart-pulse"></i>SOS</button></div>
+    <div class="col-3"><button class="btn-dash-sm" onclick="unlockVoice()"><i class="bi bi-volume-up"></i>เสียง AI</button></div>
+</div></div></div>
 
-<div class="modal fade" id="newsModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content bg-dark text-white border-primary"><div class="modal-body text-center p-4"><i class="bi bi-megaphone-fill text-warning fs-1"></i><h6 class="mt-3" id="newsContent"></h6><button class="btn btn-warning btn-sm mt-3 w-100" data-bs-dismiss="modal">รับทราบ</button></div></div></div></div>
+<div class="modal fade" id="infoModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content bg-dark text-white border-primary rounded-4"><div class="modal-body text-center p-4"><i id="infoIcon" class="bi fs-1 text-warning"></i><h5 id="infoTitle" class="mt-3 fw-bold"></h5><p id="infoContent" class="small opacity-75"></p><button class="btn btn-warning w-100 mt-3 rounded-pill fw-bold" data-bs-dismiss="modal">ตกลง</button></div></div></div></div>
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydLdWyNc2auPXPPZRyp3UBCX8caBJNCBm4Te2r9zazZDNuvgZbvBl6qvItABzQrBdtMQ/exec";
     const GUN_START_TIME = "2025-12-05T16:00:00"; 
     let currentRunner = null;
-    let allRunners = [];
+    let allData = [];
 
     function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
-
-    function speak(text) {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
-        const msg = new SpeechSynthesisUtterance(text);
-        msg.lang = 'th-TH'; msg.rate = 1.0;
-        window.speechSynthesis.speak(msg);
-    }
-    function unlockVoice() { speak("ระบบเสียงพร้อมดูแลนักวิ่งค่ะ"); }
+    function speak(text) { if (!window.speechSynthesis) return; window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.lang = 'th-TH'; window.speechSynthesis.speak(msg); }
+    function unlockVoice() { speak("ระบบเสียง อัลตร้า 104 พร้อมแล้วค่ะ"); }
 
     function toggleMusic() {
         const audio = document.getElementById('bgMusic');
@@ -156,118 +141,169 @@
         else { audio.pause(); icon.className = "bi bi-play-fill"; }
     }
 
-    async function verifyStep1() {
-        const bib = document.getElementById('scanBib').value.trim();
+    // --- 1. กู้ชีพปุ่ม SOS / ทีมงาน ---
+    function showMsg(type) {
+        const modal = new bootstrap.Modal('#infoModal');
+        const title = document.getElementById('infoTitle');
+        const content = document.getElementById('infoContent');
+        const icon = document.getElementById('infoIcon');
+        
+        if(type === 'sos') {
+            title.innerText = "🚨 ฉุกเฉิน SOS";
+            content.innerText = "กรณีฉุกเฉินติดต่อ 08X-XXX-XXXX หรือแจ้งจุด CP ที่ใกล้ที่สุดทันทีครับ";
+            icon.className = "bi bi-heart-pulse-fill text-danger";
+            speak("ฉุกเฉิน ติดต่อทีมงานได้ทันทีค่ะ");
+        } else if(type === 'staff') {
+            title.innerText = "👥 ทีมงานผู้จัด";
+            content.innerText = "ดูแลโดยเชียงของรันเนอร์ ติดต่อสอบถามได้ที่เต็นท์อำนวยการครับ";
+            icon.className = "bi bi-people-fill text-info";
+            speak("ทีมงานเชียงของรันเนอร์ ยินดีให้บริการค่ะ");
+        } else {
+            title.innerText = "📢 ข่าวสาร";
+            content.innerText = "ขอให้นักวิ่งทุกท่านรักษาสุขภาพและวิ่งอย่างมีความสุขในเส้นทางเลาะโขงครับ";
+            icon.className = "bi bi-megaphone-fill text-warning";
+        }
+        modal.show();
+    }
+
+    // --- 2. กู้หน้าผลงาน + 3. แก้ไข Pace ---
+    async function loadMyResult() {
+        const bib = document.getElementById('meBib').value.trim();
         if(!bib) return;
         showLoading(true);
         try {
             const res = await fetch(SCRIPT_URL);
-            allRunners = await res.json();
-            const runner = allRunners.find(r => String(r[2]) === bib && r[1] === 'REG');
-            if(runner) {
-                currentRunner = { bib: bib, name: runner[3], cat: runner[8] };
-                document.getElementById('confirmName').innerText = runner[3];
-                document.getElementById('confirmBibDisplay').innerText = "BIB: " + bib;
-                showRunnerHistory(bib);
-                document.getElementById('scanStep1').style.display = 'none';
-                document.getElementById('scanStep2').style.display = 'block';
-                speak(`ยืนยันข้อมูล คุณ ${runner[3].trim()} ค่ะ`);
-            } else { alert("ไม่พบข้อมูล BIB"); }
-        } catch(e) { alert("เชื่อมต่อฐานข้อมูลไม่ได้"); }
+            allData = await res.json();
+            const history = allData.filter(r => String(r[2]) === bib && r[1] === 'RUN');
+            const info = allData.find(r => String(r[2]) === bib && r[1] === 'REG');
+            
+            let html = `<div class="p-3 bg-black rounded-4 border border-secondary">`;
+            if(!info) { html += `<p>ไม่พบข้อมูล BIB ${bib}</p>`; }
+            else {
+                const lastPoint = history[history.length - 1];
+                const totalDist = lastPoint ? lastPoint[5] : 0;
+                const totalPace = lastPoint ? lastPoint[10] : "0.00";
+                html += `<h6 class="text-primary fw-bold">นักวิ่ง: ${info[3]}</h6>`;
+                html += `<p class="small mb-2">ระยะสะสม: <span class="text-warning">${totalDist} กม.</span> | Pace เฉลี่ย: <span class="text-info">${totalPace}</span></p><hr>`;
+                history.forEach(h => {
+                    html += `<div class="d-flex justify-content-between small border-bottom border-secondary py-2">
+                        <span>📍 ${h[7]}</span><span>${h[5]} กม. | <b class="text-info">${h[10]} P</b></span>
+                    </div>`;
+                });
+            }
+            html += `</div>`;
+            document.getElementById('meContent').innerHTML = html;
+            speak("ดึงข้อมูลผลงานสำเร็จค่ะ");
+        } catch(e) { alert("โหลดข้อมูลไม่สำเร็จ"); }
+        showLoading(false);
+    }
+
+    // --- 4. ปรับระบบกล้อง ---
+    async function scanCP(targetCP, dist) {
+        const reader = document.getElementById('reader');
+        reader.style.display = 'block';
+        reader.scrollIntoView({behavior: 'smooth'});
+        const scanner = new Html5Qrcode("reader");
+        
+        speak(`เปิดกล้องสแกนจุด ${targetCP} ค่ะ`);
+        
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+            if (text.includes(targetCP)) {
+                scanner.stop().then(() => {
+                    reader.style.display = 'none';
+                    checkPoint(targetCP, dist);
+                });
+            } else { speak("ผิดจุดค่ะ ลองสแกนใหม่นะคะ"); alert("ผิดจุด! นี่ไม่ใช่ " + targetCP); }
+        }).catch(err => { alert("เปิดกล้องไม่สำเร็จ กรุณากดอนุญาตสิทธิ์กล้องครับ"); });
+    }
+
+    // --- 5. Pop-up พร้อมเสียงพูด ---
+    async function checkPoint(cpCode, dist) {
+        showLoading(true);
+        const now = new Date();
+        const start = new Date(GUN_START_TIME);
+        const diffMin = (now - start) / 60000;
+        const pace = dist > 0 ? (diffMin / dist).toFixed(2) : "0.00";
+        
+        try {
+            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) });
+            const msg = `บันทึกสำเร็จที่จุด ${cpCode} ระยะทาง ${dist} กิโลเมตร ค่าเพสคือ ${pace} ค่ะ`;
+            speak(msg);
+            alert(msg);
+            location.reload();
+        } catch(e) { speak("บันทึกล้มเหลวค่ะ"); alert("บันทึกล้มเหลว"); }
+        showLoading(false);
+    }
+
+    // --- ฟังก์ชันช่วยเหลืออื่นๆ ---
+    async function verifyStep1() {
+        const bib = document.getElementById('scanBib').value.trim();
+        if(!bib) return;
+        showLoading(true);
+        const res = await fetch(SCRIPT_URL);
+        allData = await res.json();
+        const runner = allData.find(r => String(r[2]) === bib && r[1] === 'REG');
+        if(runner) {
+            currentRunner = { bib: bib, name: runner[3] };
+            document.getElementById('confirmName').innerText = runner[3];
+            document.getElementById('confirmBibDisplay').innerText = "BIB: " + bib;
+            document.getElementById('scanStep1').style.display = 'none';
+            document.getElementById('scanStep2').style.display = 'block';
+            speak(`ยืนยันข้อมูล คุณ ${runner[3]} ค่ะ`);
+        } else { speak("ไม่พบข้อมูลนักวิ่งค่ะ"); alert("ไม่พบข้อมูล"); }
         showLoading(false);
     }
 
     function showRunnerHistory(bib) {
-        const history = allRunners.filter(r => String(r[2]) === bib && r[1] === 'RUN');
-        let html = '<div class="card bg-black p-3 border-secondary small mt-2"><h6 class="text-warning small fw-bold mb-2">ประวัติจุดสแกน</h6>';
-        if(history.length === 0) html += '<div class="opacity-50">ยังไม่มีข้อมูล</div>';
-        else {
-            history.sort((a,b) => b[5] - a[5]).forEach(h => {
-                html += `<div class="d-flex justify-content-between border-bottom border-secondary py-1"><span>📍 ${h[7]} (${h[5]} กม.)</span><span class="text-info">${h[10]} P</span></div>`;
-            });
-        }
+        const history = allData.filter(r => String(r[2]) === bib && r[1] === 'RUN');
+        let html = '<div class="small bg-black p-2 rounded text-start mt-2">ประวัติการสแกน:<br>';
+        history.forEach(h => html += `• ${h[7]} (${h[5]} กม.) Pace: ${h[10]}<br>`);
         html += '</div>';
         document.getElementById('runnerHistory').innerHTML = html;
     }
 
-    async function unlockCPButtons() {
-        const myHistory = allRunners.filter(r => String(r[2]) === currentRunner.bib && r[1] === 'RUN');
-        const maxDist = myHistory.reduce((max, r) => Math.max(max, parseFloat(r[5]) || 0), -1);
+    function unlockCPButtons() {
+        const history = allData.filter(r => String(r[2]) === currentRunner.bib && r[1] === 'RUN');
+        const maxDist = history.reduce((max, r) => Math.max(max, parseFloat(r[5]) || 0), -1);
         document.getElementById('scanStep2').style.display = 'none';
         document.getElementById('scanStep3').style.display = 'block';
-        const buttons = document.querySelectorAll('.btn-checkpoint');
-        const dists = [0, 7, 56, 72, 89, 103, 104]; 
-        buttons.forEach((btn, i) => {
-            btn.classList.remove('btn-pulse');
-            if (dists[i] <= maxDist) { btn.disabled = true; btn.style.opacity = "0.4"; btn.innerHTML = "✅ " + btn.innerText; }
-            else if (i > 0 && dists[i-1] > maxDist) { btn.disabled = true; btn.style.opacity = "0.2"; }
-            else { btn.disabled = false; btn.style.opacity = "1"; btn.classList.add('btn-pulse'); }
+        document.getElementById('activeRunnerName').innerText = currentRunner.name;
+        
+        const dists = [0, 7, 56, 72, 89, 103, 104];
+        document.querySelectorAll('.btn-checkpoint').forEach((btn, i) => {
+            if(dists[i] <= maxDist) { btn.disabled = true; btn.style.opacity = "0.3"; }
+            else if(i > 0 && dists[i-1] > maxDist) { btn.disabled = true; btn.style.opacity = "0.1"; }
+            else { btn.classList.add('btn-pulse'); }
         });
-    }
-
-    async function scanCP(targetCP, dist) {
-        showLoading(true);
-        const html5QrCode = new Html5Qrcode("reader");
-        document.getElementById('reader').scrollIntoView();
-        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            if (text.includes(targetCP)) { html5QrCode.stop().then(() => checkPoint(targetCP, dist)); }
-            else { alert("ผิดจุด!"); }
-        }).then(() => showLoading(false)).catch(() => { showLoading(false); alert("เปิดกล้องไม่ได้"); });
-    }
-
-    async function checkPoint(cpCode, dist) {
-        showLoading(true);
-        const cpNames = { 'Start': 'จุดปล่อยตัว', 'CP1': 'หน้าบิ๊กซี', 'CP2': 'รพ.สต.บ้านแซว', 'CP3': 'รพ.สต.บ้านไร่', 'CP4': 'จุดชมวิวห้วยทรายมาน', 'CP5': 'วัดหาดไคร้', 'CP6': 'เส้นชัย' };
-        const now = new Date();
-        const start = new Date(GUN_START_TIME);
-        const pace = dist > 0 ? ((now - start) / 60000 / dist).toFixed(2) : "0.00";
-        try {
-            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) });
-            speak(`บันทึกสำเร็จที่ ${cpNames[cpCode]} ค่ะ`);
-            alert("บันทึกสำเร็จ!");
-            location.reload();
-        } catch(e) { alert("ล้มเหลว"); }
-        showLoading(false);
     }
 
     function loadRanking() {
         showLoading(true);
         fetch(SCRIPT_URL).then(res => res.json()).then(data => {
-            allRunners = data;
             const summary = {};
             data.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
-                if (!summary[r[2]] || r[5] > summary[r[2]].dist) summary[r[2]] = { bib: r[2], name: r[3], dist: r[5], cat: r[8], pace: r[10] };
+                if(!summary[r[2]] || parseFloat(r[5]) > summary[r[2]].dist) summary[r[2]] = { bib: r[2], name: r[3], dist: r[5] };
             });
             const sorted = Object.values(summary).sort((a,b) => b.dist - a.dist);
             let html = '';
-            sorted.forEach((r, i) => {
-                html += `<tr class="${i<3?'rank-1':''}"><td>${i+1}</td><td>${r.bib}</td><td>${r.name}</td><td class="text-end">${r.dist} กม.</td></tr>`;
-            });
+            sorted.forEach((r, i) => html += `<tr><td>${i+1}</td><td>${r.bib}</td><td>${r.name}</td><td class="text-end text-warning">${r.dist} กม.</td></tr>`);
             document.getElementById('rankingBody').innerHTML = html;
             showLoading(false);
         });
     }
 
     function cancelVerify() { location.reload(); }
-    function showNews() { 
-        document.getElementById('newsContent').innerHTML = "ยินดีต้อนรับสู่ ChiangKhong Ultra 104 Km";
-        new bootstrap.Modal('#newsModal').show(); 
-    }
 
-    window.addEventListener('load', function() {
-        const myForm = document.getElementById('regForm');
-        if (myForm) {
-            myForm.addEventListener('submit', async (e) => {
-                e.preventDefault(); showLoading(true);
-                const data = { action: 'register', bib: document.getElementById('regBib').value, name: document.getElementById('regName').value, gender: document.getElementById('regGender').value, category: document.getElementById('regCategory').value };
-                try {
-                    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-                    alert("ลงทะเบียนเรียบร้อย!");
-                    myForm.reset();
-                } catch (error) { alert("ล้มเหลว"); }
-                showLoading(false);
-            });
-        }
+    window.addEventListener('load', () => {
+        document.getElementById('regForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading(true);
+            const data = { action: 'register', bib: document.getElementById('regBib').value, name: document.getElementById('regName').value, gender: document.getElementById('regGender').value, category: document.getElementById('regCategory').value };
+            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
+            speak("ลงทะเบียนเรียบร้อยค่ะ");
+            alert("ลงทะเบียนสำเร็จ!");
+            location.reload();
+        });
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
