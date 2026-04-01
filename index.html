@@ -356,13 +356,41 @@
 
     async function checkPoint(cpCode, dist) {
         showLoading(true);
-        const pace = dist > 0 ? (((new Date() - new Date(GUN_START_TIME)) / 60000) / dist).toFixed(2) : "0.00";
+        const cpNames = { 'Start': 'จุดปล่อยตัว', 'CP1': 'หน้าบิ๊กซี', 'CP2': 'รพ.สต.บ้านแซว', 'CP3': 'รพ.สต.บ้านไร่', 'CP4': 'จุดชมวิวห้วยทรายมาน', 'CP5': 'วัดหาดไคร้', 'CP6': 'เส้นชัยศาลาหนึ่งศูนย์สี่' };
+        
+        const now = new Date();
+        const start = new Date(GUN_START_TIME);
+        const diffMin = (now - start) / 60000;
+        const pace = dist > 0 ? (diffMin / dist).toFixed(2) : "0.00";
+        
         try {
-            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) });
-            speak(`บันทึกสำเร็จที่จุด ${cpCode} ระยะทางรวม ${dist} กิโลเมตรค่ะ`);
-            alert("บันทึกสำเร็จ!");
-            location.reload();
-        } catch(e) { alert("ล้มเหลว"); }
+            await fetch(SCRIPT_URL, { 
+                method: 'POST', 
+                mode: 'no-cors', 
+                body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) 
+            });
+
+            // 🎙️ คำนวณระยะทางที่เหลือ
+            const remaining = (104 - dist).toFixed(1);
+            const place = cpNames[cpCode] || cpCode;
+            
+            let finishMsg = "";
+            if (dist >= 104) {
+                finishMsg = `ขอแสดงความยินดีด้วยค่ะคุณ ${currentRunner.name}! คุณถึง ${place} แล้ว พิชิตระยะทางหนึ่งร้อยสี่กิโลเมตรสำเร็จสมบูรณ์ คุณเก่งจริงและหัวใจเพชรมากค่ะ!`;
+            } else {
+                finishMsg = `สแกนจุด ${place} สำเร็จแล้วค่ะ ได้ระยะทางรวม ${dist} กิโลเมตร เหลือระยะทางอีก ${remaining} กิโลเมตรจะถึงเส้นชัย สู้ต่อไปนะคุณ ${currentRunner.name}!`;
+            }
+
+            speak(finishMsg);
+            alert(finishMsg); // โชว์ Pop-up พร้อมข้อความเดียวกับเสียงพูด
+            
+            // รีโหลดหน้าเพื่อให้ปุ่มอัปเดตสถานะ
+            setTimeout(() => { location.reload(); }, 3000); 
+
+        } catch(e) { 
+            speak("ขออภัยค่ะ ระบบบันทึกขัดข้อง กรุณาลองใหม่อีกครั้งนะคะ");
+            alert("ล้มเหลว"); 
+        }
         showLoading(false);
     }
 
