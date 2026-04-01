@@ -199,57 +199,54 @@
     }
 
     // --- 4. ปรับระบบกล้อง ---
-    // --- 📸 ฟังก์ชันสแกนจุด (เวอร์ชันบังคับเปิดกล้อง 100%) ---
-    let scanner = null; // สร้างตัวแปรไว้ข้างนอกเพื่อคุมการเปิด-ปิด
+   // --- 📸 ฟังก์ชันสแกนจุด (ฉบับแก้ทางตัน) ---
+    let html5QrCode = null; // ประกาศไว้บนสุดของ Script
 
     async function scanCP(targetCP, dist) {
         const readerDiv = document.getElementById('reader');
-        readerDiv.style.display = 'block'; // บังคับให้แสดง Div กล้อง
+        readerDiv.style.display = 'block'; 
         readerDiv.scrollIntoView({ behavior: 'smooth' });
 
         speak(`เปิดกล้องสแกนจุด ${targetCP} ค่ะ`);
 
-        // 1. ถ้ามี scanner ค้างอยู่ให้สั่งหยุดและล้างทิ้งก่อน
-        if (scanner) {
+        // 1. ถ้ามีของเก่าค้างอยู่ ให้ทำลายทิ้งก่อน (Clear old instance)
+        if (html5QrCode) {
             try {
-                await scanner.stop();
-            } catch (e) {
-                console.log("Scanner was not running");
-            }
-            scanner = null;
+                await html5QrCode.stop();
+                html5QrCode.clear();
+            } catch (e) { console.log("No active camera to stop"); }
         }
 
-        // 2. สร้าง instance ใหม่
-        scanner = new Html5Qrcode("reader");
+        // 2. สร้างตัวสแกนใหม่ทุกครั้งที่กดปุ่ม
+        html5QrCode = new Html5Qrcode("reader");
 
         const config = { 
             fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0 
+            qrbox: { width: 250, height: 250 }
         };
 
-        // 3. เริ่มทำงาน
-        scanner.start(
+        // 3. เริ่มการทำงาน (ส่องไปที่กล้องหลัง)
+        html5QrCode.start(
             { facingMode: "environment" }, 
             config, 
             (decodedText) => {
-                // ✅ สแกนติด
+                // ✅ เมื่อสแกนติด
                 if (decodedText.includes(targetCP)) {
-                    speak(`ถูกต้องค่ะ บันทึกข้อมูลจุด ${targetCP}`);
-                    scanner.stop().then(() => {
+                    speak(`ถูกต้องค่ะ บันทึกข้อมูลจุด ${targetCP} เรียบร้อย`);
+                    html5QrCode.stop().then(() => {
                         readerDiv.style.display = 'none';
-                        checkPoint(targetCP, dist);
+                        checkPoint(targetCP, dist); // ส่งข้อมูลเข้า Google Sheet
                     });
                 } else {
-                    speak("ผิดจุดค่ะ นี่ไม่ใช่ป้ายของ " + targetCP);
-                    alert("❌ ผิดจุด! นี่ไม่ใช่ป้ายของ " + targetCP);
+                    speak("ผิดจุดค่ะ ลองใหม่อีกครั้งนะคะ");
+                    alert("❌ ผิดจุด! นี่ไม่ใช่ " + targetCP);
                 }
             }
         ).catch(err => {
-            // ❌ ถ้าเปิดกล้องไม่ได้
-            console.error(err);
-            speak("ไม่สามารถเข้าถึงกล้องได้ค่ะ กรุณาตรวจสอบสิทธิ์การใช้งานนะคะ");
-            alert("⚠️ กล้องไม่ทำงาน: กรุณากดอนุญาตให้เข้าถึงกล้อง หรือตรวจสอบว่าหน้าเว็บเป็น https:// หรือยังครับ");
+            // ❌ ถ้าเปิดไม่ได้ (Error Handling)
+            console.error("Camera error:", err);
+            speak("ขออภัยค่ะ เปิดกล้องไม่สำเร็จ กรุณาลองรีเฟรชหน้าจอนะคะ");
+            alert("⚠️ กล้องไม่ทำงาน: กรุณาตรวจสอบว่าหน้าเว็บเป็น HTTPS หรือลองปิด Tab แล้วเปิดใหม่ครับ");
         });
     }
 
