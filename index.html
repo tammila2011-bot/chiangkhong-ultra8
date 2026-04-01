@@ -193,21 +193,43 @@
         }
     }
 
+    // --- 📸 แก้ไขระบบสแกนจุด CP ให้เด้งชัวร์เหมือนหน้าแรก ---
     async function scanCP(targetCP, dist) {
+        if (!currentRunner) return;
+        
         const reader = document.getElementById('reader');
         reader.style.display = 'block';
         reader.scrollIntoView({behavior: 'smooth'});
-        speak(`เปิดกล้องสแกนจุด ${targetCP} ค่ะ`);
+        
+        // หยุดตัวเก่าก่อน (ถ้ามี)
+        if (html5QrCode && html5QrCode.isScanning) {
+            await html5QrCode.stop();
+        }
+
+        speak(`กรุณาสแกน QR Code ประจำจุด ${targetCP} ค่ะ`);
         
         if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            if (text.includes(targetCP)) {
-                html5QrCode.stop().then(() => {
-                    reader.style.display = 'none';
-                    checkPoint(targetCP, dist);
-                });
-            } else { speak("ผิดจุดค่ะ ลองสแกนใหม่นะคะ"); alert("ผิดจุด! นี่ไม่ใช่ " + targetCP); }
-        }).catch(err => { alert("เปิดกล้องไม่ได้ กรุณาเช็คสิทธิ์การใช้กล้องครับ"); });
+        
+        try {
+            await html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: 250 }, 
+                (text) => {
+                    // ตรวจสอบความถูกต้องของป้าย QR
+                    if (text.includes(targetCP)) {
+                        html5QrCode.stop().then(() => {
+                            reader.style.display = 'none';
+                            checkPoint(targetCP, dist); // บันทึกข้อมูล
+                        });
+                    } else {
+                        speak("ขออภัยค่ะ ป้ายไม่ถูกต้อง กรุณาสแกนป้ายของจุด " + targetCP);
+                        alert("❌ ผิดจุด! นี่ไม่ใช่ป้าย " + targetCP);
+                    }
+                }
+            );
+        } catch (err) {
+            alert("เปิดกล้องไม่ได้: " + err);
+        }
     }
 
     // --- 🥇 ระบบ Ranking แยกประเภท + เหรียญรางวัล ---
