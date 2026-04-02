@@ -228,22 +228,40 @@
 
     async function checkPoint(cpCode, dist) {
         showLoading(true);
-        const now = new Date(), gunStart = new Date(GUN_START_TIME_STR + "+07:00");
-        const pace = dist > 0 ? (((now - gunStart) / 60000) / dist).toFixed(2) : "0.00";
+        const now = new Date();
+        const gunStart = new Date(GUN_START_TIME_STR + "+07:00");
+        
+        // ⏱️ คำนวณเวลาที่ใช้ไปนับจาก Gun Start (หน่วยนาที)
+        const diffMin = (now - gunStart) / 60000;
+        
+        // 🏃‍♂️ สูตร Pace: นาที / ระยะทาง (ถ้า dist เป็น 0 หรือติดลบ ให้เป็น 0)
+        let pace = "0.00";
+        if (dist > 0) {
+            const pDecimal = diffMin / dist;
+            const pMin = Math.floor(pDecimal);
+            const pSec = Math.round((pDecimal - pMin) * 60);
+            pace = pMin + "." + pSec.toString().padStart(2, '0');
+        }
+
         try {
-            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) });
+            await fetch(SCRIPT_URL, { 
+                method: 'POST', 
+                mode: 'no-cors', 
+                body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) 
+            });
+
             if (dist >= 104) {
                 speak(`ไชโย! ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัย 104 กิโลเมตรสำเร็จแล้ว!`);
                 alert("🚩 FINISH!");
                 bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
                 document.getElementById('meBib').value = currentRunner.bib; loadMyResult();
             } else {
-                const msg = `บันทึกจุด ${cpCode} สำเร็จ ระยะ ${dist} กม. สู้ต่อไปนะคะคุณ ${currentRunner.name}`;
+                const remain = (104 - dist).toFixed(1);
+                const msg = `บันทึกจุด ${cpCode} สำเร็จ ระยะ ${dist} กม. ค่าเพสของคุณคือ ${pace} เหลืออีก ${remain} กม. สู้ๆ ค่ะ`;
                 speak(msg); alert(msg);
             }
-            // 🔄 Loop Scan
             cancelVerify();
-        } catch(e) { alert("ล้มเหลว"); }
+        } catch(e) { alert("บันทึกล้มเหลว"); }
         showLoading(false);
     }
 
@@ -288,10 +306,27 @@
                 const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
                 currentRunner = { bib: bib, name: info[3] };
                 if (maxD >= 104) document.getElementById('certArea').style.display = 'block';
-                let html = `<div class="p-3 bg-dark rounded-4 text-center border border-primary mb-3"><h4>${info[3]}</h4><h2 class="text-warning">${maxD.toFixed(1)} กม.</h2></div>`;
+                
+                let html = `<div class="p-3 bg-dark rounded-4 text-center border border-primary mb-3 shadow"><h4>${info[3]}</h4><h2 class="text-warning">${maxD.toFixed(1)} กม.</h2></div>`;
+                
+                // เรียงประวัติจากใหม่ไปเก่า
                 hist.sort((a,b) => b[5] - a[5]).forEach(h => {
-                    const thTime = new Date(h[0]).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-                    html += `<div class="history-card shadow"><b>📍 ${cpNames[h[7]] || h[7]}</b><br><small>${thTime} | ${h[10]} Pace</small></div>`;
+                    const utcDate = new Date(h[0]);
+                    const thTime = utcDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
+                    
+                    // ดึงค่า Pace มาจาก Google Sheet โดยตรง (คอลัมน์ที่ 10)
+                    const paceFromSheet = h[10] || "0.00";
+
+                    html += `<div class="history-card shadow">
+                                <div class="d-flex justify-content-between">
+                                    <b>📍 ${cpNames[h[7]] || h[7]}</b>
+                                    <span class="badge bg-primary fs-6">${paceFromSheet} P</span>
+                                </div>
+                                <div class="d-flex justify-content-between small mt-1">
+                                    <span>🕒 ${thTime} น.</span>
+                                    <span class="text-warning fw-bold">+${h[5]} กม.</span>
+                                </div>
+                            </div>`;
                 });
                 document.getElementById('meContent').innerHTML = html;
             }
