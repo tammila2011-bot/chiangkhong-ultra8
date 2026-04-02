@@ -108,27 +108,28 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="tab-reg">
-            <div class="card p-4">
-                <h5 class="fw-bold mb-4 text-primary">สมัครนักวิ่ง</h5>
-                <form id="regForm">
-                    <div class="mb-3"><label class="small text-muted">เลข BIB</label><input type="text" id="regBib" class="form-control text-center fw-bold" required></div>
-                    <div class="mb-3"><label class="small text-muted">ชื่อ-นามสกุล</label><input type="text" id="regName" class="form-control" required></div>
-                    <div class="row g-2 mb-4">
-                        <div class="col-6"><label class="small text-muted">เพศ</label><select id="regGender" class="form-select"><option value="M">ชาย (Male)</option><option value="F">หญิง (Female)</option></select></div>
-                        <div class="col-6"><label class="small text-muted">ประเภท</label><select id="regCategory" class="form-select">
-                            <option value="Solo">Solo (เดี่ยว)</option>
-                            <option value="Couple">ผลัด 2</option>
-                            <option value="Team3">ผลัด 3</option>
-                            <option value="Team10">ผลัด 10</option>
-                        </select></div>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100 fw-bold py-3">บันทึกข้อมูล</button>
-                </form>
-            </div>
+        <div class="tab-pane fade" id="tab-me">
+    <div class="card p-4 text-center">
+        <h5 class="fw-bold text-primary mb-3">ตรวจสอบผลงานส่วนตัว</h5>
+        <div class="input-group mb-3">
+            <input type="text" id="meBib" class="form-control text-center bg-dark text-white border-primary" placeholder="ใส่เลข BIB ของคุณ">
+            <button class="btn btn-warning fw-bold" onclick="loadMyResult()">ดูผลการแข่งขัน</button>
         </div>
+        
+        <div id="certArea" style="display:none;" class="mt-4 p-3 border border-warning rounded-4 bg-black">
+            <i class="bi bi-trophy-fill text-warning fs-1"></i>
+            <h4 class="text-white fw-bold mt-2">ยินดีด้วยคุณคือ FINISHER!</h4>
+            <p class="text-muted small">คุณพิชิตระยะทาง 104 กม. สำเร็จแล้ว</p>
+            <button class="btn btn-lg btn-outline-warning w-100 fw-bold mt-2" onclick="generateCertificate()">
+                <i class="bi bi-file-earmark-pdf"></i> รับใบเกียรติบัตรของคุณ
+            </button>
+        </div>
+
+        <div id="meContent" class="mt-4 text-start"></div>
     </div>
 </div>
+
+<canvas id="certCanvas" style="display:none;"></canvas>
 
 <div class="bottom-dashboard"><div class="container"><div class="row text-center">
     <div class="col-3"><button class="btn-dash-sm" onclick="showMsg('news')"><i class="bi bi-megaphone"></i>ข่าวสาร</button></div>
@@ -143,207 +144,374 @@
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydLdWyNc2auPXPPZRyp3UBCX8caBJNCBm4Te2r9zazZDNuvgZbvBl6qvItABzQrBdtMQ/exec";
-    const GUN_START_TIME = "2025-12-05T16:00:00"; 
-    let currentRunner = null, allData = [], html5QrCode = null;
+    const GUN_START_TIME_STR = "2025-12-05T16:00:00"; // เวลาปล่อยตัว (รูปแบบ ISO)
+    let currentRunner = null;
+    let allData = [];
+
+    // ชื่อจุด CP สำหรับแสดงผล
+    const cpNames = {
+        'Start': 'จุดปล่อยตัว',
+        'CP1': 'หน้าบิ๊กซี สนามบิน',
+        'CP2': 'รพ.สต.บ้านแซว',
+        'CP3': 'รพ.สต.บ้านไร่',
+        'CP4': 'จุดชมวิวห้วยทรายมาน',
+        'CP5': 'วัดหาดไคร้',
+        'CP6': 'ศาลา 104 เชียงของ'
+    };
 
     function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
-    function speak(text) { if (!window.speechSynthesis) return; window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.lang = 'th-TH'; msg.rate = 0.95; window.speechSynthesis.speak(msg); }
-    function unlockVoice() { speak("ระบบเสียงเชียงของ อัลตร้า มาราธอน พร้อมแล้วค่ะ"); }
+    
+    // 🎙️ ระบบเสียง AI
+    function speak(text) {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'th-TH'; // ตั้งเป็นภาษาไทย
+        msg.rate = 1.0;
+        window.speechSynthesis.speak(msg);
+    }
+    function unlockVoice() { speak("ระบบเสียงพร้อมดูแลนักวิ่ง อัลตร้า 104 แล้วค่ะ"); }
+
     function toggleMusic() {
-        const audio = document.getElementById('bgMusic'); const icon = document.getElementById('playIcon');
-        if (audio.paused) { audio.play(); icon.className = "bi bi-pause-fill"; } else { audio.pause(); icon.className = "bi bi-play-fill"; }
+        const audio = document.getElementById('bgMusic');
+        const icon = document.getElementById('playIcon');
+        if (audio.paused) { audio.play(); icon.className = "bi bi-pause-fill"; }
+        else { audio.pause(); icon.className = "bi bi-play-fill"; }
     }
 
+    // --- 1. แก้ไข: เพิ่มเสียงแจ้งเตือนตอนสมัครสำเร็จ ---
+    window.addEventListener('load', () => {
+        document.getElementById('regForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading(true);
+            const bib = document.getElementById('regBib').value;
+            const name = document.getElementById('regName').value;
+            const data = { 
+                action: 'register', 
+                bib: bib, 
+                name: name, 
+                gender: document.getElementById('regGender').value, 
+                category: document.getElementById('regCategory').value 
+            };
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
+                
+                // 🔊 เพิ่มเสียงพูดตรงนี้ครับอาจารย์
+                speak(`ลงทะเบียนสำเร็จแล้วค่ะ ยินดีต้อนรับคุณ ${name} หมายเลข บิบ ${bib} เข้าสู่การแข่งขันค่ะ`);
+                
+                alert("สมัครสำเร็จ!");
+                location.reload();
+            } catch (error) { alert("ล้มเหลว"); }
+            showLoading(false);
+        });
+    });
+
+    // --- 🔍 ตรวจสอบ BIB หน้าสแกน ---
     async function verifyStep1() {
         const bib = document.getElementById('scanBib').value.trim();
         if(!bib) return;
         showLoading(true);
         try {
-            const res = await fetch(SCRIPT_URL); allData = await res.json();
+            const res = await fetch(SCRIPT_URL);
+            allData = await res.json();
             const runner = allData.find(r => String(r[2]) === bib && r[1] === 'REG');
             if(runner) {
-                currentRunner = { bib: bib, name: runner[3], cat: runner[8], gender: runner[7] };
+                currentRunner = { bib: bib, name: runner[3] };
                 document.getElementById('confirmName').innerText = runner[3];
                 document.getElementById('confirmBibDisplay').innerText = "BIB: " + bib;
-                showRunnerHistoryScan(bib);
+                
+                // แสดงประวัติการสแกนในหน้านี้ด้วย
+                showRunnerHistory(bib);
+
                 document.getElementById('scanStep1').style.display = 'none';
                 document.getElementById('scanStep2').style.display = 'block';
-                speak(`ยืนยันตัวตนสำเร็จ คุณ ${runner[3].trim()} ค่ะ`);
+                speak(`ยืนยันข้อมูล คุณ ${runner[3].trim()} ค่ะ`);
             } else { alert("ไม่พบข้อมูล BIB"); }
-        } catch(e) { alert("เชื่อมต่อผิดพลาด"); }
+        } catch(e) { alert("เชื่อมต่อฐานข้อมูลไม่ได้"); }
         showLoading(false);
     }
 
-    function showRunnerHistoryScan(bib) {
-        const hist = allData.filter(r => String(r[2]) === bib && r[1] === 'RUN');
-        let html = '<div class="card bg-black p-3 border-secondary small mt-2"><h6 class="text-warning small fw-bold mb-2">ประวัติจุดล่าสุด:</h6>';
-        if(hist.length === 0) html += '<div class="opacity-50 text-center py-2">ยังไม่มีข้อมูลสแกน</div>';
+    // แสดงประวัติสแกนจุด
+    function showRunnerHistory(bib) {
+        const history = allData.filter(r => String(r[2]) === bib && r[1] === 'RUN');
+        let html = '<div class="card bg-black p-3 border-secondary small mt-2"><h6 class="text-warning small fw-bold mb-2">ประวัติจุดสแกนล่าสุด</h6>';
+        if(history.length === 0) html += '<div class="opacity-50 text-center">ยังไม่มีข้อมูล</div>';
         else {
-            hist.sort((a,b) => b[5] - a[5]).forEach(h => {
-                html += `<div class="d-flex justify-content-between border-bottom border-secondary py-1 text-white"><span>📍 ${h[4]} (${h[5]} กม.)</span><span>Pace: ${h[10]}</span></div>`;
+            // เรียงจากกิโลเมตรล่าสุดขึ้นก่อน
+            history.sort((a,b) => b[5] - a[5]).forEach(h => {
+                // แก้ไข: แสดงชื่อจุด CP ให้ถูกต้อง
+                const cpName = cpNames[h[7]] || h[7] || 'จุดทั่วไป';
+                html += `<div class="d-flex justify-content-between border-bottom border-secondary py-1 text-white">
+                            <span>📍 ${cpName} (${h[5]} กม.)</span>
+                            <span class="text-info">${h[10]} Pace</span>
+                         </div>`;
             });
         }
         html += '</div>';
-        document.getElementById('runnerHistoryScan').innerHTML = html;
+        const scanHistDiv = document.getElementById('runnerHistoryScan');
+        if(scanHistDiv) scanHistDiv.innerHTML = html;
     }
 
+    // ปลดล็อกปุ่ม CP และจั๊มหน้าจอ
     async function unlockCPButtons() {
-        const hist = allData.filter(r => String(r[2]) === currentRunner.bib && r[1] === 'RUN');
-        const maxD = hist.reduce((max, r) => Math.max(max, parseFloat(r[5]) || 0), -1);
+        const myHistory = allData.filter(r => String(r[2]) === currentRunner.bib && r[1] === 'RUN');
+        const maxDist = myHistory.reduce((max, r) => Math.max(max, parseFloat(r[5]) || 0), -1);
+
         document.getElementById('scanStep2').style.display = 'none';
-        const s3 = document.getElementById('scanStep3'); s3.style.display = 'block';
+        const s3 = document.getElementById('scanStep3');
+        s3.style.display = 'block';
         document.getElementById('activeRunnerName').innerText = currentRunner.name;
         
-        setTimeout(() => { s3.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 200);
+        // 🚀 จั๊มหน้าจอไปที่ส่วนของปุ่มสแกน
+        setTimeout(() => { s3.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
 
         const dists = [0, 7, 56, 72, 89, 103, 104];
         document.querySelectorAll('.btn-checkpoint').forEach((btn, i) => {
             btn.classList.remove('btn-pulse');
-            if (dists[i] <= maxD) { 
-                btn.disabled = true; btn.style.opacity = "0.3"; 
+            if (dists[i] <= maxDist) { 
+                btn.disabled = true; 
+                btn.style.opacity = "0.3"; 
                 btn.innerHTML = "✅ " + (btn.innerText.includes(')') ? btn.innerText.split(') ')[1] : btn.innerText); 
-            } else if (i > 0 && dists[i-1] > maxD) { 
-                btn.disabled = true; btn.style.opacity = "0.1"; 
-            } else { 
-                btn.disabled = false; btn.style.opacity = "1"; btn.classList.add('btn-pulse'); 
+            }
+            else if (i > 0 && dists[i-1] > maxDist) { 
+                btn.disabled = true; 
+                btn.style.opacity = "0.1"; 
+            }
+            else { 
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.classList.add('btn-pulse'); 
             }
         });
-        speak(`พร้อมสแกนค่ะ กรุณากดปุ่มจุดที่คุณอยู่ปัจจุบันนะคะ`);
+        speak(`ยืนยันข้อมูลเรียบร้อยค่ะ กรุณากดปุ่มที่กะพริบเพื่อสแกนจุดต่อไปนะคะ`);
     }
 
+    // --- 📸 ระบบสแกนจุด CP ---
     async function scanCP(targetCP, dist) {
-        const reader = document.getElementById('reader'); reader.style.display = 'block';
+        const reader = document.getElementById('reader');
+        reader.style.display = 'block';
+        reader.scrollIntoView({behavior: 'smooth'});
         if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
         if (html5QrCode.isScanning) await html5QrCode.stop();
-        speak(`สแกน QR Code จุด ${targetCP} ค่ะ`);
+        
+        speak(`เปิดกล้องสแกนจุด ${targetCP} ค่ะ`);
         html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
             if (text.includes(targetCP)) {
-                html5QrCode.stop().then(() => { reader.style.display = 'none'; checkPoint(targetCP, dist); });
-            } else { speak("ป้ายไม่ถูกต้องค่ะ"); alert("ผิดจุด!"); }
-        }).catch(err => alert("เปิดกล้องไม่ได้"));
+                html5QrCode.stop().then(() => {
+                    reader.style.display = 'none';
+                    checkPoint(targetCP, dist);
+                });
+            } else { speak("ผิดจุดค่ะ ลองสแกนใหม่นะคะ"); alert("ผิดจุด!"); }
+        }).catch(err => { alert("เปิดกล้องไม่ได้"); });
     }
 
+    // --- 📝 2. แก้ไข: จูน Pace และระบบ Finisher 104 กม. ---
     async function checkPoint(cpCode, dist) {
         showLoading(true);
-        const now = new Date(), start = new Date(GUN_START_TIME);
-        const diffMin = (now - start) / 60000;
-        const pace = dist > 0 ? (diffMin / dist).toFixed(2) : "0.00";
+        
+        // --- 🇹🇭 จูนโซนเวลาไทยสำหรับการคำนวณ Pace ---
+        const now = new Date(); // เวลาปัจจุบันของเครื่อง (ควรเป็นเวลาไทย)
+        // สร้างเวลา Gun Start ใน Timezone ไทย
+        const gunStart = new Date(GUN_START_TIME_STR + "+07:00"); 
+
+        // คำนวณเวลาที่ใช้ไป (มิลลิวินาที)
+        const timeDiffMs = now - gunStart;
+        
+        // แปลงเป็นนาที
+        const diffMin = timeDiffMs / 60000;
+        
+        // สูตร Pace: นาทีต่อกิโลเมตร (จูนให้แม่นยำ)
+        let pace = "0.00";
+        if (dist > 0 && diffMin > 0) {
+            pace = (diffMin / dist).toFixed(2);
+        }
+
         try {
-            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) });
-            
+            await fetch(SCRIPT_URL, { 
+                method: 'POST', 
+                mode: 'no-cors', 
+                body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) 
+            });
+
+            // ตรวจสอบการจบการแข่งขัน (104 กม.)
             if (dist >= 104) {
-                // 3. Finish Celebration
-                speak(`ไชโย! ยินดีด้วยค่ะคุณ ${currentRunner.name} คุณทำได้แล้ว! คุณพิชิตระยะทางหนึ่งร้อยสี่กิโลเมตร เข้าสู่เส้นชัยศาลาหนึ่งศูนย์สี่ระเบียงโขงเชียงของสำเร็จ คุณคือสุดยอดนักสู้หัวใจเพชรค่ะ!`);
-                alert("🚩 FINISH 104 KM!");
-                generateCertificate(); // เปิดใบประกาศ
+                // 🎉 เสียงฉลองสุดตื่นเต้น
+                speak(`ไชโย! ยินดีด้วยค่ะคุณ ${currentRunner.name}! คุณเก่งมาก คุณทำได้แล้ว! คุณพิชิตระยะทางหนึ่งร้อยสี่กิโลเมตร เข้าสู่เส้นชัย ศาลาหนึ่งศูนย์สี่ระเบียงโขงเชียงของ สำเร็จสมบูรณ์ คุณคือนักสู้หัวใจเพชรค่ะ!`);
+                alert("🏁 FINISH 104 KM! ยินดีด้วยค่ะ");
+                
+                // กระโดดไปหน้าผลงานเพื่อรับใบประกาศ
+                bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
+                document.getElementById('meBib').value = currentRunner.bib;
+                loadMyResult(); // โหลดผลงานเพื่อแสดงปุ่มรับใบประกาศ
             } else {
                 const remain = (104 - dist).toFixed(1);
-                const msg = `สแกนจุด ${cpCode} สำเร็จ ระยะสะสม ${dist} กิโลเมตร เหลือระยะทางอีก ${remain} กิโลเมตร สู้ต่อไปนะคะคุณ ${currentRunner.name}`;
-                speak(msg); alert(msg); location.reload();
+                const msg = `บันทึกสำเร็จที่จุด ${cpCode} ได้ระยะทางรวม ${dist} กิโลเมตร เหลือระยะทางอีก ${remain} กิโลเมตร สู้ต่อไปนะคะคุณ ${currentRunner.name}`;
+                speak(msg);
+                alert(msg);
+                location.reload(); 
             }
-        } catch(e) { alert("ล้มเหลว"); }
+        } catch(e) { alert("บันทึกล้มเหลว"); }
         showLoading(false);
     }
 
-    // 1. Ranking แยก Solo ชาย/หญิง
+    // --- 🥇 ตารางอันดับ Live ---
     async function loadRanking() {
-        showLoading(true); const res = await fetch(SCRIPT_URL); allData = await res.json();
-        filterRanking(); showLoading(false);
-    }
-
-    function filterRanking() {
-        const filter = document.getElementById('rankFilter').value;
+        showLoading(true);
+        const res = await fetch(SCRIPT_URL);
+        allData = await res.json();
         const summary = {};
+        // กรองหัวตารางออก
         allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
-            const bib = r[2]; const d = parseFloat(r[5]);
-            if (!summary[bib] || d > summary[bib].dist) summary[bib] = { bib: bib, name: r[3], dist: d, cat: r[8], gender: r[7], pace: r[10] };
+            if (!summary[r[2]] || parseFloat(r[5]) > summary[r[2]].dist) {
+                summary[r[2]] = { bib: r[2], name: r[3], dist: r[5], cat: r[8], pace: r[10] };
+            }
         });
-
-        const sorted = Object.values(summary).filter(r => {
-            if (filter === 'All') return true;
-            if (filter === 'Solo_M') return r.cat === 'Solo' && r.gender === 'M';
-            if (filter === 'Solo_F') return r.cat === 'Solo' && r.gender === 'F';
-            return r.cat === filter;
-        }).sort((a,b) => b.dist - a.dist);
-
+        const sorted = Object.values(summary).sort((a,b) => b.dist - a.dist);
         let html = '';
         sorted.forEach((r, i) => {
             let icon = (i === 0) ? '🥇' : (i === 1) ? '🥈' : (i === 2) ? '🥉' : i + 1;
-            html += `<tr class="${i<3?'rank-gold':''}"><td>${icon}</td><td>${r.bib}</td><td>${r.name}<br><small>${r.cat}-${r.gender}</small></td><td class="text-end text-warning">${r.dist} กม.</td></tr>`;
+            html += `<tr class="${i<3?'rank-gold':''}"><td>${icon}</td><td>${r.bib}</td><td>${r.name}<br><small>${r.cat}</small></td><td class="text-end text-warning">${r.dist} กม.</td></tr>`;
         });
-        document.getElementById('rankingBody').innerHTML = html || '<tr><td colspan="4" class="text-center">ไม่พบข้อมูล</td></tr>';
-    }
-
-    // 5. ปรับปรุงหน้าผลงาน (Clear UI + Accurate Pace)
-    async function loadMyResult() {
-        const bib = document.getElementById('meBib').value.trim();
-        if(!bib) return;
-        showLoading(true); const res = await fetch(SCRIPT_URL); allData = await res.json();
-        const hist = allData.filter(r => String(r[2]) === bib && r[1] === 'RUN');
-        const info = allData.find(r => String(r[2]) === bib && r[1] === 'REG');
-        let html = '';
-        if(!info) html = '<p class="text-center py-4 text-warning">ไม่พบข้อมูล BIB นี้</p>';
-        else {
-            const maxD = hist.length ? Math.max(...hist.map(h => h[5])) : 0;
-            html = `<div class="p-4 bg-dark rounded-4 text-center border border-primary mb-3 shadow">
-                        <h4 class="fw-bold text-white mb-1">${info[3]}</h4>
-                        <span class="badge bg-secondary mb-3">BIB: ${bib} | ${info[8]}</span>
-                        <h1 class="text-warning fw-bold mb-0">${maxD} <small class="fs-6">กม.</small></h1>
-                    </div><h6 class="fw-bold mb-3 text-info">ประวัติการเดินทาง:</h6>`;
-            
-            hist.sort((a,b) => b[5] - a[5]).forEach(h => {
-                html += `<div class="history-card shadow">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="fw-bold">📍 จุด: ${h[4]}</span>
-                                <span class="badge bg-primary fs-6">Pace: ${h[10]}</span>
-                            </div>
-                            <div class="d-flex justify-content-between small text-white-50">
-                                <span>📅 ${h[0]}</span>
-                                <span class="fw-bold text-warning">+${h[5]} KM</span>
-                            </div>
-                         </div>`;
-            });
-        }
-        document.getElementById('meContent').innerHTML = html;
+        document.getElementById('rankingBody').innerHTML = html || '<tr><td colspan="4">ไม่มีข้อมูล</td></tr>';
         showLoading(false);
     }
 
-    // 2 & 3. ใบประกาศเกียรติบัตร
+    // --- 📊 5. แก้ไข: หน้าผลงาน (UI ชัดเจน, โซนเวลาไทย, ชื่อจุด CP) ---
+    async function loadMyResult() {
+        const bib = document.getElementById('meBib').value.trim();
+        if(!bib) return;
+        showLoading(true);
+        document.getElementById('certArea').style.display = 'none'; // ซ่อนพื้นที่ใบประกาศก่อน
+
+        try {
+            const res = await fetch(SCRIPT_URL);
+            allData = await res.json();
+            const history = allData.filter(r => String(r[2]) === bib && r[1] === 'RUN');
+            const info = allData.find(r => String(r[2]) === bib && r[1] === 'REG');
+            
+            let html = '';
+            if(!info) { html = '<p class="text-center py-4 text-warning">ไม่พบข้อมูล BIB นี้</p>'; }
+            else {
+                // หาระยะทางสูงสุด
+                const maxD = history.length ? Math.max(...history.map(h => parseFloat(h[5]) || 0)) : 0;
+                currentRunner = { bib: bib, name: info[3] }; // เก็บไว้สำหรับทำใบประกาศ
+
+                // 🏆 ตรวจสอบเพื่อแสดงปุ่มรับใบประกาศ (104 กม.)
+                if (maxD >= 104) {
+                    document.getElementById('certArea').style.display = 'block';
+                }
+
+                html = `<div class="p-4 bg-dark rounded-4 text-center border border-primary mb-3 shadow">
+                            <h4 class="fw-bold text-white mb-1">${info[3]}</h4>
+                            <span class="badge bg-secondary mb-3">BIB: ${bib} | ${info[8]}</span>
+                            <h1 class="text-warning fw-bold mb-0">${maxD.toFixed(1)} <small class="fs-6">กม.</small></h1>
+                        </div><h6 class="fw-bold mb-3 text-info">ประวัติการเดินทาง (เวลาไทย):</h6>`;
+                
+                // แสดงประวัติ (เรียงจุดล่าสุดขึ้นก่อน)
+                history.sort((a,b) => b[5] - a[5]).forEach(h => {
+                    // แปลงเวลา UTC จาก Sheet ให้เป็นเวลาไทย (Asia/Bangkok)
+                    const utcDate = new Date(h[0]); // h[0] คือคอลัมน์ Timestamp
+                    const thTimeStr = utcDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour12: false });
+                    
+                    // แก้ไข: แสดงชื่อจุด CP ให้ถูกต้อง
+                    const cpName = cpNames[h[7]] || h[7] || 'จุดทั่วไป';
+
+                    html += `<div class="history-card shadow">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-bold text-white">📍 จุด: ${cpName}</span>
+                                    <span class="badge bg-primary fs-6">Pace: ${h[10]}</span>
+                                </div>
+                                <div class="d-flex justify-content-between small text-white">
+                                    <span>📅 ${thTimeStr} น.</span>
+                                    <span class="fw-bold text-warning">+${h[5]} KM</span>
+                                </div>
+                             </div>`;
+                });
+            }
+            document.getElementById('meContent').innerHTML = html;
+        } catch(e) { alert("โหลดข้อมูลล้มเหลว"); }
+        showLoading(false);
+    }
+
+    // --- 🏆 2. แก้ไข: ระบบสร้างใบประกาศเกียรติบัตรแบบ Sunny ---
     function generateCertificate() {
+        showLoading(true);
+        speak("กำลังเตรียมใบเกียรติบัตร FINISHER ให้คุณค่ะ");
+
         const canvas = document.getElementById('certCanvas');
         const ctx = canvas.getContext('2d');
-        const img = new Image(); img.crossOrigin = "anonymous";
-        img.src = 'certificate_bg.png'; // ใช้ชื่อไฟล์ที่อาจารย์แจ้ง
-        img.onload = () => {
-            canvas.width = img.width; canvas.height = img.height;
-            ctx.drawImage(img, 0, 0); ctx.textAlign = 'center'; ctx.fillStyle = '#1a1a1a';
-            ctx.font = 'bold 80px "Prompt"'; ctx.fillText(currentRunner.name, canvas.width/2, canvas.height * 0.48);
-            ctx.font = 'bold 60px "Prompt"'; ctx.fillText("BIB: " + currentRunner.bib, canvas.width/2, canvas.height * 0.56);
-            ctx.font = 'bold 70px "Prompt"'; ctx.fillText("ระยะทาง 104 กม.", canvas.width/2, canvas.height * 0.68);
+        const img = new Image();
+        img.crossOrigin = "anonymous"; // ป้องกันปัญหา CORS
+        // อาจารย์ต้องมีไฟล์ certificate_bg.png ในโฟลเดอร์เดียวกันนะครับ
+        img.src = 'certificate_bg.png'; 
+
+        img.onload = function() {
+            // ตั้งค่าขนาด Canvas ตามรูปพื้นหลัง
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            // การตั้งค่าฟอนต์และสี (จูนให้สวยงาม)
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#1a1a1a'; // สีตัวอักษรเข้ม
+
+            // วาดชื่อนักวิ่ง
+            ctx.font = 'bold 85px "Prompt", sans-serif'; 
+            ctx.fillText(currentRunner.name, canvas.width / 2, canvas.height * 0.48); // ปรับตำแหน่ง y ตามรูป
+
+            // วาดหมายเลข BIB
+            ctx.font = '60px "Prompt", sans-serif';
+            ctx.fillText("หมายเลข BIB: " + currentRunner.bib, canvas.width / 2, canvas.height * 0.55);
+
+            // วาดระยะทางและข้อความความสำเร็จ
+            ctx.font = 'bold 70px "Prompt", sans-serif';
+            ctx.fillText("พิชิตระยะทาง 104 กม. สำเร็จสมบูรณ์", canvas.width / 2, canvas.height * 0.68);
+
+            // แปลงเป็นรูปภาพและเปิดในหน้าใหม่เพื่อให้นักวิ่งบันทึก
             const dataUrl = canvas.toDataURL('image/png');
+            showLoading(false);
+            
+            speak("ขอแสดงความยินดีด้วยค่ะ นี่คือใบเกียรติบัตรของคุณ");
+            
+            // เปิดหน้าต่างใหม่แสดงรูปใบประกาศ
             const win = window.open('', '_blank');
-            win.document.write(`<html><body style="margin:0;background:#000;display:flex;justify-content:center;align-items:center;height:100vh;"><img src="${dataUrl}" style="max-width:95%;border:5px solid #8e6d31;border-radius:15px;"></body></html>`);
+            if (win) {
+                win.document.write(`
+                    <html>
+                    <head>
+                        <title>ใบเกียรติบัตร FINISHER - ${currentRunner.name}</title>
+                        <style>
+                            body { margin:0; background:#000; display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Prompt', sans-serif; }
+                            img { max-width:95%; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.8); border: 3px solid #8e6d31; }
+                        </style>
+                    </head>
+                    <body>
+                        <img src="${dataUrl}">
+                        <p style="color:white; position:absolute; bottom:10px; font-size:0.8rem;">(กดค้างที่รูปเพื่อบันทึกใบเกียรติบัตรของคุณ)</p>
+                    </body>
+                    </html>
+                `);
+                win.document.close();
+            } else {
+                alert("ยินดีด้วยค่ะ! อย่าลืมกดอนุญาต Pop-up เพื่อดูใบเกียรติบัตรของคุณนะครับ");
+            }
+        };
+
+        img.onerror = function() { 
+            showLoading(false); 
+            alert("ไม่สามารถโหลดรูปพื้นหลังใบประกาศได้ (ไฟล์ certificate_bg.png หายหรือชื่อผิด)"); 
         };
     }
 
     function showMsg(type) {
         const modal = new bootstrap.Modal('#infoModal'), t = document.getElementById('infoTitle'), c = document.getElementById('infoContent'), i = document.getElementById('infoIcon');
-        if(type==='sos'){ t.innerText="🆘 ฉุกเฉิน"; c.innerText="แจ้งจุด CP ใกล้ที่สุด หรือโทรสายด่วน 08X-XXX-XXXX"; i.className="bi bi-heart-pulse-fill text-danger"; speak("แจ้งฉุกเฉินสำเร็จค่ะ"); }
-        else if(type==='staff'){ t.innerText="👥 ทีมงาน"; c.innerText="ทีมเชียงของรันเนอร์ยินดีดูแลคุณ"; i.className="bi bi-people-fill text-info"; }
-        else { t.innerText="📢 ข่าวสาร"; c.innerText="ยินดีต้อนรับสู่สนาม ChiangKhong Ultra 104 Km."; i.className="bi bi-megaphone-fill text-warning"; }
+        if(type==='sos'){ t.innerText="🆘 แจ้งฉุกเฉิน"; c.innerText="โทรแจ้งจุด CP ใกล้ที่สุด หรือโทรสายด่วนทีมงาน 08X-XXX-XXXX"; i.className="bi bi-heart-pulse-fill text-danger"; speak("แจ้งฉุกเฉินสำเร็จค่ะ ทีมงานกำลังประสานงานนะคะ"); }
+        else if(type==='staff'){ t.innerText="👥 ทีมงาน"; c.innerText="ทีมเชียงของรันเนอร์ยินดีดูแลนักวิ่งทุกท่านครับ"; i.className="bi bi-people-fill text-info"; }
+        else { t.innerText="📢 ข่าวสาร"; c.innerText="ยินดีต้อนรับสู่ ChiangKhong Ultra 104 Km."; i.className="bi bi-megaphone-fill text-warning"; }
         modal.show();
     }
 
-    window.addEventListener('load', () => {
-        document.getElementById('regForm').addEventListener('submit', async (e) => {
-            e.preventDefault(); showLoading(true);
-            const data = { action: 'register', bib: document.getElementById('regBib').value, name: document.getElementById('regName').value, gender: document.getElementById('regGender').value, category: document.getElementById('regCategory').value };
-            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-            // 2. เสียงลงทะเบียนสำเร็จ
-            speak(`ลงทะเบียนสำเร็จแล้วคุณ ${data.name} หมายเลขบิบของคุณคือ ${data.bib} สแกนจุดสตาร์ทเพื่อเริ่มการแข่งขันได้เลยค่ะ`);
-            alert("สมัครสำเร็จ!"); location.reload();
-        });
-    });
+    function cancelVerify() { location.reload(); }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
