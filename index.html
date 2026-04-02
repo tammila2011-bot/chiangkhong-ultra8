@@ -226,39 +226,51 @@
         }).catch(err => alert("เปิดกล้องไม่ได้"));
     }
 
+    // --- 📝 ฟังก์ชันบันทึกจุด CP (ฉบับจูน Pace ให้กลับเป็นมนุษย์ปกติ) ---
     async function checkPoint(cpCode, dist) {
         showLoading(true);
-        const now = new Date();
-        const gunStart = new Date(GUN_START_TIME_STR + "+07:00");
         
-        // ⏱️ คำนวณส่วนต่างเวลา (Time Elapsed) เป็นนาที
-        // เราต้องเอา (เวลาปัจจุบัน ลบ เวลาปล่อยตัว) แล้วหารด้วย 60,000 มิลลิวินาที
+        // 🇹🇭 กำหนดโซนเวลาไทย (+07:00)
+        const now = new Date(); // เวลาปัจจุบัน
+        const gunStart = new Date(GUN_START_TIME_STR + "+07:00"); // เวลาปล่อยตัว 16:00 น.
+
+        // ⏱️ 1. คำนวณส่วนต่างเวลาที่ใช้ไปจริง (Time Elapsed) เป็นมิลลิวินาที
         const timeDiffMs = now.getTime() - gunStart.getTime();
+        
+        // ⏱️ 2. แปลงเป็นนาที
         const diffMin = timeDiffMs / 60000;
         
+        // 🏃‍♂️ 3. คำนวณสูตร Pace (นาทีต่อกิโลเมตร)
         let pace = "0.00";
         if (dist > 0 && diffMin > 0) {
             const pDecimal = diffMin / dist;
             const pMin = Math.floor(pDecimal);
-            // ปัดเศษวินาทีให้สวยงาม
+            // ปัดเศษวินาทีให้สวยงาม (เช่น .30 คือ 30 วินาที)
             const pSec = Math.round((pDecimal - pMin) * 60);
             pace = pMin + "." + pSec.toString().padStart(2, '0');
         } else {
-            pace = "0.00"; // ถ้าเป็นจุด Start ให้ Pace เป็น 0
+            pace = "0.00"; // สำหรับจุด Start ให้ Pace เป็น 0
         }
 
         try {
-            // ส่งค่า pace ที่คำนวณได้ใหม่นี้ไปที่ Google Sheet
+            // ส่งค่า pace ที่คำนวณได้ใหม่นี้ไปบันทึกใน Google Sheet
             await fetch(SCRIPT_URL, { 
                 method: 'POST', 
                 mode: 'no-cors', 
                 body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) 
             });
-            
-            // ... ส่วนของเสียง AI และการเปลี่ยนหน้า (เหมือนเดิม) ...
-            const remain = (104 - dist).toFixed(1);
-            const msg = (dist >= 104) ? `ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัยสำเร็จ!` : `บันทึกสำเร็จ ระยะ ${dist} กม. Pace ปัจจุบันคือ ${pace} ค่ะ`;
-            speak(msg); alert(msg);
+
+            // ... ส่วนที่เหลือของฟังก์ชัน (เสียง AI, แจ้งเตือน) เหมือนเดิมครับ ...
+            if (dist >= 104) {
+                const finishMsg = `ไชโย! ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัยสำเร็จแล้ว! คุณคือสุดยอดนักสู้หัวใจเพชรค่ะ`;
+                speak(finishMsg); alert("🚩 FINISH 104 KM!");
+                bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
+                document.getElementById('meBib').value = currentRunner.bib; loadMyResult();
+            } else {
+                const msg = `บันทึกจุด ${cpCode} สำเร็จ ระยะ ${dist} กม. Pace ปัจจุบันคือ ${pace} สู้ต่อไปนะคะ`;
+                speak(msg); alert(msg);
+            }
+            // 🔄 Loop Scan
             cancelVerify();
         } catch(e) { alert("บันทึกล้มเหลว"); }
         showLoading(false);
