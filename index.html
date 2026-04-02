@@ -189,7 +189,8 @@
         if(hist.length === 0) html += '<div class="opacity-50 text-center">ยังไม่มีข้อมูล</div>';
         else {
             hist.sort((a,b) => b[5] - a[5]).forEach(h => {
-                html += `<div class="d-flex justify-content-between border-bottom border-secondary py-1 text-white"><span>📍 ${cpNames[h[7]] || h[7]}</span><span>${h[10]} Pace</span></div>`;
+                html += `<div class="d-flex justify-content-between border-bottom border-secondary py-1 text-white"><span>📍 ${cpNames[h[7]] || h[7]}</span><span>
+<span class="badge bg-primary fs-6">${parseFloat(h[10]).toFixed(2)} P</span></span></div>`;
             });
         }
         html += '</div>';
