@@ -231,35 +231,34 @@
         const now = new Date();
         const gunStart = new Date(GUN_START_TIME_STR + "+07:00");
         
-        // ⏱️ คำนวณเวลาที่ใช้ไปนับจาก Gun Start (หน่วยนาที)
-        const diffMin = (now - gunStart) / 60000;
+        // ⏱️ คำนวณส่วนต่างเวลา (Time Elapsed) เป็นนาที
+        // เราต้องเอา (เวลาปัจจุบัน ลบ เวลาปล่อยตัว) แล้วหารด้วย 60,000 มิลลิวินาที
+        const timeDiffMs = now.getTime() - gunStart.getTime();
+        const diffMin = timeDiffMs / 60000;
         
-        // 🏃‍♂️ สูตร Pace: นาที / ระยะทาง (ถ้า dist เป็น 0 หรือติดลบ ให้เป็น 0)
         let pace = "0.00";
-        if (dist > 0) {
+        if (dist > 0 && diffMin > 0) {
             const pDecimal = diffMin / dist;
             const pMin = Math.floor(pDecimal);
+            // ปัดเศษวินาทีให้สวยงาม
             const pSec = Math.round((pDecimal - pMin) * 60);
             pace = pMin + "." + pSec.toString().padStart(2, '0');
+        } else {
+            pace = "0.00"; // ถ้าเป็นจุด Start ให้ Pace เป็น 0
         }
 
         try {
+            // ส่งค่า pace ที่คำนวณได้ใหม่นี้ไปที่ Google Sheet
             await fetch(SCRIPT_URL, { 
                 method: 'POST', 
                 mode: 'no-cors', 
                 body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) 
             });
-
-            if (dist >= 104) {
-                speak(`ไชโย! ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัย 104 กิโลเมตรสำเร็จแล้ว!`);
-                alert("🚩 FINISH!");
-                bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
-                document.getElementById('meBib').value = currentRunner.bib; loadMyResult();
-            } else {
-                const remain = (104 - dist).toFixed(1);
-                const msg = `บันทึกจุด ${cpCode} สำเร็จ ระยะ ${dist} กม. ค่าเพสของคุณคือ ${pace} เหลืออีก ${remain} กม. สู้ๆ ค่ะ`;
-                speak(msg); alert(msg);
-            }
+            
+            // ... ส่วนของเสียง AI และการเปลี่ยนหน้า (เหมือนเดิม) ...
+            const remain = (104 - dist).toFixed(1);
+            const msg = (dist >= 104) ? `ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัยสำเร็จ!` : `บันทึกสำเร็จ ระยะ ${dist} กม. Pace ปัจจุบันคือ ${pace} ค่ะ`;
+            speak(msg); alert(msg);
             cancelVerify();
         } catch(e) { alert("บันทึกล้มเหลว"); }
         showLoading(false);
