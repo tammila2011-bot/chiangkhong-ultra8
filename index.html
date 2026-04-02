@@ -309,12 +309,27 @@
                 const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
                 currentRunner = { bib: bib, name: info[3] };
                 if (maxD >= 104) document.getElementById('certArea').style.display = 'block';
-                let html = `<div class="p-3 bg-dark rounded-4 text-center border border-primary mb-3 shadow"><h4>${info[3]}</h4><h2 class="text-warning">${maxD.toFixed(1)} กม.</h2></div>`;
-                hist.sort((a,b) => b[5] - a[5]).forEach(h => {
-                    const thTime = new Date(h[0]).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
-                    html += `<div class="history-card shadow"><div class="d-flex justify-content-between"><b>📍 ${cpNames[h[7]] || h[7]}</b><span class="badge bg-primary">${h[10] || "--:--"} P</span></div><div class="d-flex justify-content-between small mt-1"><span>🕒 ${thTime} น.</span><span class="text-warning fw-bold">+${h[5]} กม.</span></div></div>`;
-                });
-                document.getElementById('meContent').innerHTML = html;
+                // --- วางทับช่วงบรรทัด 312 เป็นต้นไปในรูป B35.png ---
+let html = `<div class="p-3 bg-dark rounded-4 text-center border border-primary mb-3 shadow"><h4>${info[3]}</h4><h2 class="text-warning">${maxD.toFixed(1)} กม.</h2></div>`;
+
+hist.sort((a,b) => b[5] - a[5]).forEach(h => {
+    const thTime = new Date(h[0]).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
+    
+    // ✨ ชี้เป้า: สร้างตัวแปรดึงค่าจากคอลัมน์ K (ลำดับที่ 11) มาใช้ตรงนี้ครับ
+    const paceValue = h[11] || "--:--"; 
+
+    html += `<div class="history-card shadow">
+                <div class="d-flex justify-content-between">
+                    <b>📍 ${cpNames[h[7]] || h[7]}</b>
+                    <span class="badge bg-primary fs-6">${paceValue} P</span>
+                </div>
+                <div class="d-flex justify-content-between small mt-1">
+                    <span>🕒 ${thTime} น.</span>
+                    <span class="text-warning fw-bold">+${h[5]} กม.</span>
+                </div>
+            </div>`;
+});
+document.getElementById('meContent').innerHTML = html;
             }
         } catch(e) {}
         showLoading(false);
