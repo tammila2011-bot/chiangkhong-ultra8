@@ -226,49 +226,62 @@
         }).catch(err => alert("เปิดกล้องไม่ได้"));
     }
 
+    // --- 📝 ฟังก์ชันบันทึกจุด CP (ฉบับแก้เส้นผมบังภูเขา 100%) ---
     async function checkPoint(cpCode, dist) {
         showLoading(true);
         
-        const now = new Date(); // เวลาปัจจุบัน
-        // 🇹🇭 จูนเวลาปล่อยตัว 16:00 น. ให้เป็น Timezone ไทย
-        const gunStart = new Date("2025-12-05T16:00:00+07:00"); 
+        // 1. ดึงเวลาปัจจุบัน (มิลลิวินาที)
+        const nowMs = new Date().getTime(); 
+        
+        // 2. ดึงเวลา Gun Start (มิลลิวินาที) - ระบุ Timezone +07:00 ให้ชัดเจน
+        const gunStartMs = new Date(GUN_START_TIME_STR + "+07:00").getTime();
 
-        // ⏱️ 1. คำนวณส่วนต่างเวลาที่วิ่งไปจริง (หน่วยมิลลิวินาที)
-        const diffMs = now.getTime() - gunStart.getTime();
+        // ⏱️ 3. คำนวณส่วนต่างเวลาที่ใช้ไปจริง (Elapsed Time) เป็นนาที
+        const diffMin = (nowMs - gunStartMs) / 60000;
         
-        // ⏱️ 2. แปลงเป็นนาที
-        const diffMin = diffMs / 60000;
-        
-        // 🏃‍♂️ 3. คำนวณ Pace (นาที ต่อ กิโลเมตร)
+        // 🏃‍♂️ 4. คำนวณ Pace (นาที ต่อ กิโลเมตร)
         let pace = "0.00";
         if (dist > 0 && diffMin > 0) {
             const pDecimal = diffMin / dist;
             const pMin = Math.floor(pDecimal);
             const pSec = Math.round((pDecimal - pMin) * 60);
-            // รูปแบบ นาที.วินาที
+            // รูปแบบ นาที.วินาที (เช่น 4.15 หรือ 5.30)
             pace = pMin + "." + pSec.toString().padStart(2, '0');
+        } else {
+            pace = "0.00"; // ถ้าเป็นจุด Start ให้ Pace เป็น 0
         }
 
         try {
-            // บันทึกค่า Pace ที่ถูกต้องลง Google Sheet
+            // ส่งค่า Pace ที่คำนวณได้ใหม่นี้ไปบันทึกใน Google Sheet
             await fetch(SCRIPT_URL, { 
                 method: 'POST', 
                 mode: 'no-cors', 
-                body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) 
+                body: JSON.stringify({ 
+                    action: 'record', 
+                    bib: currentRunner.bib, 
+                    end: cpCode, 
+                    distance: dist, 
+                    pace: pace 
+                }) 
             });
 
             if (dist >= 104) {
-                speak(`ไชโย! ยินดีด้วยค่ะคุณ ${currentRunner.name} คุณเข้าเส้นชัยสำเร็จสมบูรณ์แล้วค่ะ!`);
+                const finishMsg = `ไชโย! ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัยสำเร็จแล้ว! คุณคือสุดยอดนักสู้หัวใจเพชรค่ะ`;
+                speak(finishMsg); 
                 alert("🚩 FINISH 104 KM!");
                 bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
-                document.getElementById('meBib').value = currentRunner.bib; loadMyResult();
+                document.getElementById('meBib').value = currentRunner.bib; 
+                loadMyResult();
             } else {
-                const msg = `บันทึกจุด ${cpCode} สำเร็จ ระยะ ${dist} กม. ค่าเพสของคุณคือ ${pace} ค่ะ`;
-                speak(msg); alert(msg);
+                const msg = `บันทึกจุด ${cpCode} สำเร็จ ระยะ ${dist} กม. Pace คือ ${pace} สู้ต่อไปนะคะ!`;
+                speak(msg); 
+                alert(msg);
             }
-            // 🔄 กลับไปหน้าใส่ BIB ใหม่ (Loop)
+            // 🔄 Loop Scan: เคลียร์ค่ากลับไปหน้าแรกทันที
             cancelVerify();
-        } catch(e) { alert("บันทึกล้มเหลว"); }
+        } catch(e) { 
+            alert("บันทึกล้มเหลว กรุณาเช็คอินเตอร์เน็ตนะคะ"); 
+        }
         showLoading(false);
     }
 
