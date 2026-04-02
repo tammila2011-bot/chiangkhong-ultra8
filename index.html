@@ -275,28 +275,62 @@
     }
 
     function filterRanking() {
-        const f = document.getElementById('rankFilter').value;
+        const f = document.getElementById('rankFilter').value; // ค่าจาก Select
         const summary = {};
+        
+        // 1. รวบรวมข้อมูลล่าสุดของนักวิ่งแต่ละคน
         allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
-            const bib = String(r[2]); const d = parseFloat(r[5]);
-            const reg = allData.find(reg => String(reg[2]) === bib && reg[1] === 'REG');
-            if (!summary[bib] || d > summary[bib].dist) {
-                summary[bib] = { bib: bib, name: r[3], dist: d, cat: reg?reg[8]:'Solo', gender: reg?reg[7]:'M' };
+            const bib = String(r[2]).trim();
+            const d = parseFloat(r[5]) || 0;
+            
+            // ค้นหาข้อมูลการลงทะเบียน (REG) เพื่อดูเพศและประเภท
+            const reg = allData.find(reg => reg[1] === 'REG' && String(reg[2]).trim() === bib);
+            
+            if (reg) {
+                const cat = reg[8];    // ประเภท เช่น Solo, Couple, Team3
+                const gender = reg[9]; // เพศ เช่น M, F
+                
+                // เก็บเฉพาะระยะที่มากที่สุดของ BIB นั้นๆ
+                if (!summary[bib] || d > summary[bib].dist) {
+                    summary[bib] = { 
+                        bib: bib, 
+                        name: r[3], 
+                        dist: d, 
+                        cat: cat, 
+                        gender: gender 
+                    };
+                }
             }
         });
+
+        // 2. กรองข้อมูลตามเงื่อนไขที่เลือก
         const sorted = Object.values(summary).filter(r => {
             if (f === 'All') return true;
-            if (f === 'Solo_M') return r.cat === 'Solo' && r.gender === 'M';
-            if (f === 'Solo_F') return r.cat === 'Solo' && r.gender === 'F';
-            return r.cat === f;
-        }).sort((a,b) => b.dist - a.dist);
+            if (f === 'Solo_M') return (r.cat === 'Solo' && r.gender === 'M');
+            if (f === 'Solo_F') return (r.cat === 'Solo' && r.gender === 'F');
+            if (f === 'Couple') return (r.cat === 'Couple');
+            if (f === 'Team3') return (r.cat === 'Team3');
+            if (f === 'Team10') return (r.cat === 'Team10');
+            return false;
+        }).sort((a, b) => b.dist - a.dist); // เรียงจากระยะทางมากไปน้อย
 
+        // 3. สร้าง HTML ตาราง
         let html = '';
-        sorted.forEach((r, i) => {
-            let icon = (i === 0) ? '🥇' : (i === 1) ? '🥈' : (i === 2) ? '🥉' : i + 1;
-            html += `<tr class="${i<3?'rank-gold':''}"><td>${icon}</td><td>${r.bib}</td><td>${r.name}<br><small>${r.cat}-${r.gender}</small></td><td class="text-end text-warning">${r.dist} กม.</td></tr>`;
-        });
-        document.getElementById('rankingBody').innerHTML = html || '<tr><td colspan="4" class="text-center">ไม่มีข้อมูล</td></tr>';
+        if (sorted.length === 0) {
+            html = '<tr><td colspan="4" class="text-center opacity-50">--- ยังไม่มีข้อมูลในประเภทนี้ ---</td></tr>';
+        } else {
+            sorted.forEach((r, i) => {
+                let icon = (i === 0) ? '🥇' : (i === 1) ? '🥈' : (i === 2) ? '🥉' : i + 1;
+                let rowClass = (i < 3) ? 'rank-gold' : '';
+                html += `<tr class="${rowClass}">
+                            <td>${icon}</td>
+                            <td>${r.bib}</td>
+                            <td>${r.name}<br><small class="text-muted">${r.cat}-${r.gender}</small></td>
+                            <td class="text-end text-warning fw-bold">${r.dist.toFixed(1)} กม.</td>
+                         </tr>`;
+            });
+        }
+        document.getElementById('rankingBody').innerHTML = html;
     }
 
     async function loadMyResult() {
