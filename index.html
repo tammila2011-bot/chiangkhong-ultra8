@@ -230,21 +230,21 @@
    async function checkPoint(cpCode, dist) {
         showLoading(true);
         const now = new Date();
-        // ⚠️ สำคัญ: ต้องมั่นใจว่า GUN_START_TIME_STR คือเวลาใกล้เคียงกับที่อาจารย์สแกน Start นะครับ
         const start = new Date(GUN_START_TIME_STR + "+07:00");
         
-        const diffMs = now.getTime() - start.getTime(); 
+        // ⏱️ ส่วนต่างเวลาเป็น "นาที"
+        const diffInMs = Math.abs(now - start);
+        const diffInMins = diffInMs / 60000;
+        
         let ps = "0:00";
-
         if (parseFloat(dist) > 0) {
-            // ใช้ส่วนต่างเวลาที่เกิดขึ้นจริงมาคำนวณ
-            const totalMinutes = (Math.abs(diffMs) / 1000) / 60;
-            const paceDecimal = totalMinutes / parseFloat(dist);
-            
+            const paceDecimal = diffInMins / parseFloat(dist);
             const pMin = Math.floor(paceDecimal);
             const pSec = Math.round((paceDecimal - pMin) * 60);
             ps = pMin + ":" + pSec.toString().padStart(2, '0');
         }
+
+        console.log("Calculated Pace:", ps); // เช็คใน Console ดูได้ครับ
 
         try {
             await fetch(SCRIPT_URL, { 
@@ -255,9 +255,15 @@
                     bib: currentRunner.bib, 
                     end: cpCode, 
                     distance: dist, 
-                    pace: "'" + ps // ✨ ใส่ ' เพื่อบังคับให้ Sheet มองเป็น Text
+                    pace: "'" + ps // บังคับส่งเป็น Text ด้วย '
                 }) 
             });
+            // ... ส่วนแจ้งเตือนและเสียงอ่าน (เหมือนเดิม) ...
+            speak(`บันทึกสำเร็จ ระยะ ${dist} กิโลเมตร เพซ ${ps.replace(':', ' นาที ')} วินาที`);
+            cancelVerify();
+        } catch(e) { alert("Error!"); }
+        showLoading(false);
+    }
 
             // 🎙️ เสียงอ่าน AI ภาษาคน
             const parts = ps.split(":");
