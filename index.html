@@ -232,7 +232,7 @@
         const now = new Date();
         const start = new Date(GUN_START_TIME_STR + "+07:00");
         const diffMs = now.getTime() - start.getTime(); 
-        let ps = "--:--";
+        let ps = "0:00";
 
         if (parseFloat(dist) > 0) {
             const absDiff = Math.abs(diffMs); 
@@ -247,22 +247,17 @@
             await fetch(SCRIPT_URL, { 
                 method: 'POST', 
                 mode: 'no-cors', 
-                body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: ps }) 
+                body: JSON.stringify({ 
+                    action: 'record', 
+                    bib: currentRunner.bib, 
+                    end: cpCode, 
+                    distance: dist, 
+                    pace: "'" + ps // ✨ ใส่เครื่องหมาย ' นำหน้าเพื่อล็อกให้เป็นข้อความ
+                }) 
             });
-
-            let speakPace = "";
-            if (ps && ps.includes(":")) {
-                const parts = ps.split(":");
-                speakPace = `เพซ ${parseInt(parts[0])} นาที ${parseInt(parts[1])} วินาที`;
-            } else { speakPace = `เพซ ${ps}`; }
-
-            let msg = (dist >= 104) ? `ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัยสำเร็จแล้ว ใช้ระยะเวลาเฉลี่ย ${speakPace} ค่ะ` : `บันทึกจุด ${cpCode} สำเร็จ ระยะ ${dist} กม. ${speakPace} ค่ะ`;
-            speak(msg); alert(msg);
-
-            if (dist >= 104) {
-                bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
-                document.getElementById('meBib').value = currentRunner.bib; loadMyResult();
-            }
+            // ... (ส่วนเสียงอ่าน AI เหมือนเดิม) ...
+            speak(`บันทึกสำเร็จ เพซของคุณคือ ${ps.replace(':','นาที ')} วินาที`);
+            alert(`บันทึกสำเร็จ Pace: ${ps}`);
             cancelVerify();
         } catch(e) { alert("ล้มเหลว"); }
         showLoading(false);
