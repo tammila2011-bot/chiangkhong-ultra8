@@ -227,17 +227,20 @@
         }).catch(err => alert("เปิดกล้องไม่ได้"));
     }
 
-    async function checkPoint(cpCode, dist) {
+   async function checkPoint(cpCode, dist) {
         showLoading(true);
         const now = new Date();
+        // ⚠️ สำคัญ: ต้องมั่นใจว่า GUN_START_TIME_STR คือเวลาใกล้เคียงกับที่อาจารย์สแกน Start นะครับ
         const start = new Date(GUN_START_TIME_STR + "+07:00");
+        
         const diffMs = now.getTime() - start.getTime(); 
         let ps = "0:00";
 
         if (parseFloat(dist) > 0) {
-            const absDiff = Math.abs(diffMs); 
-            const totalMinutes = (absDiff / 1000) / 60;
+            // ใช้ส่วนต่างเวลาที่เกิดขึ้นจริงมาคำนวณ
+            const totalMinutes = (Math.abs(diffMs) / 1000) / 60;
             const paceDecimal = totalMinutes / parseFloat(dist);
+            
             const pMin = Math.floor(paceDecimal);
             const pSec = Math.round((paceDecimal - pMin) * 60);
             ps = pMin + ":" + pSec.toString().padStart(2, '0');
@@ -252,14 +255,18 @@
                     bib: currentRunner.bib, 
                     end: cpCode, 
                     distance: dist, 
-                    pace: "'" + ps // ✨ ใส่เครื่องหมาย ' นำหน้าเพื่อล็อกให้เป็นข้อความ
+                    pace: "'" + ps // ✨ ใส่ ' เพื่อบังคับให้ Sheet มองเป็น Text
                 }) 
             });
-            // ... (ส่วนเสียงอ่าน AI เหมือนเดิม) ...
-            speak(`บันทึกสำเร็จ เพซของคุณคือ ${ps.replace(':','นาที ')} วินาที`);
-            alert(`บันทึกสำเร็จ Pace: ${ps}`);
+
+            // 🎙️ เสียงอ่าน AI ภาษาคน
+            const parts = ps.split(":");
+            const speakMsg = `บันทึกสำเร็จ ระยะ ${dist} กิโลเมตร เพซ ${parseInt(parts[0])} นาที ${parseInt(parts[1])} วินาที ค่ะ`;
+            
+            speak(speakMsg);
+            alert(`บันทึกสำเร็จ! Pace: ${ps}`);
             cancelVerify();
-        } catch(e) { alert("ล้มเหลว"); }
+        } catch(e) { alert("บันทึกล้มเหลว"); }
         showLoading(false);
     }
 
