@@ -234,17 +234,21 @@
         const now = new Date();
         const start = new Date(GUN_START_TIME_STR + "+07:00");
         
-        // ⏱️ คำนวณส่วนต่างมิลลิวินาที
-        const diffMs = now - start;
+       // ⏱️ คำนวณส่วนต่างมิลลิวินาที
+        const diffMs = now.getTime() - start.getTime(); // ใช้ .getTime() เพื่อความชัวร์
         
         let ps = "--:--";
-        // 🏃‍♂️ คำนวณ Pace (นาที:วินาที)
-        if (parseFloat(dist) > 0 && diffMs > 0) {
-            const totalMinutes = (diffMs / 1000) / 60; // แปลงเป็นนาทีรวม
+        // 🏃‍♂️ คำนวณ Pace
+        if (parseFloat(dist) > 0) {
+            // ถ้า diffMs ติดลบ (สแกนก่อนเวลาเริ่ม) ให้คำนวณจาก 1 นาทีชั่วคราวเพื่อดูผล
+            const absDiff = Math.abs(diffMs); 
+            const totalMinutes = (absDiff / 1000) / 60;
             const paceDecimal = totalMinutes / parseFloat(dist);
             
             const pMin = Math.floor(paceDecimal);
             const pSec = Math.round((paceDecimal - pMin) * 60);
+            ps = pMin + ":" + pSec.toString().padStart(2, '0');
+        }
             
             // ตรวจสอบไม่ให้ค่าออกมาเพี้ยน (Safety Guard)
             if (pMin < 1000) { 
