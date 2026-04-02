@@ -105,9 +105,9 @@
                     <input type="text" id="meBib" class="form-control text-center bg-dark text-white border-primary" placeholder="ใส่เลข BIB">
                     <button class="btn btn-warning fw-bold" onclick="loadMyResult()">ดูผลการแข่งขัน</button>
                 </div>
-                <div id="certArea" style="display:none;" class="mt-2 p-3 border border-warning rounded-4 bg-black shadow-lg">
+                <div id="certArea" style="display:none;" class="mt-2 p-3 border border-warning rounded-4 bg-black">
                     <h4 class="text-white fw-bold">🏆 FINISHER 104 KM!</h4>
-                    <button class="btn btn-lg btn-outline-warning w-100 fw-bold mt-2" onclick="generateCertificate()">🎓 รับใบเกียรติบัตรของคุณ</button>
+                    <button class="btn btn-lg btn-outline-warning w-100 fw-bold mt-2" onclick="generateCertificate()">🎓 รับใบเกียรติบัตร</button>
                 </div>
                 <div id="meContent" class="mt-4 text-start"></div>
             </div>
@@ -128,7 +128,7 @@
                             <option value="Team10">ผลัด 10</option>
                         </select></div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 fw-bold py-3">บันทึกข้อมูลสมัคร</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-3">บันทึกข้อมูล</button>
                 </form>
             </div>
         </div>
@@ -148,6 +148,7 @@
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1KkxYzfmMQKHebhoUj_MqjhSjLXAA03bbR_Q0_vNA6b6Llowso-yN4cbfjFyoPxldEg/exec";
+    // ⚠️ วันทดสอบอย่าลืมปรับเป็นเวลาปัจจุบันนะครับ
     const GUN_START_TIME_STR = "2025-12-05T16:00:00"; 
     let currentRunner = null, allData = [], html5QrCode = null, adminClicks = 0;
 
@@ -161,7 +162,7 @@
         if (audio.paused) { audio.play(); icon.className = "bi bi-pause-fill"; } else { audio.pause(); icon.className = "bi bi-play-fill"; }
     }
 
-    function handleLogoClick() { adminClicks++; if(adminClicks>=5) { alert("Admin Mode เข้าถึงแล้ว"); adminClicks=0; } }
+    function handleLogoClick() { adminClicks++; if(adminClicks>=5) { alert("Admin Mode"); adminClicks=0; } }
 
     async function verifyStep1() {
         const bib = document.getElementById('scanBib').value.trim();
@@ -178,8 +179,8 @@
                 document.getElementById('scanStep1').style.display = 'none';
                 document.getElementById('scanStep2').style.display = 'block';
                 speak(`ยืนยันข้อมูล คุณ ${runner[3]} ค่ะ`);
-            } else { alert("ไม่พบ BIB นี้ในระบบ"); }
-        } catch(e) { alert("เชื่อมต่อผิดพลาด"); }
+            } else { alert("ไม่พบ BIB"); }
+        } catch(e) { alert("เชื่อมต่อพลาด"); }
         showLoading(false);
     }
 
@@ -223,62 +224,54 @@
         html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
             if (text.includes(targetCP)) {
                 html5QrCode.stop().then(() => { reader.style.display = 'none'; checkPoint(targetCP, dist); });
-            } else { speak("ผิดจุดค่ะ ลองสแกนป้าย " + targetCP + " นะคะ"); alert("ผิดจุด!"); }
+            } else { speak("ผิดจุดค่ะ"); alert("ผิดจุด!"); }
         }).catch(err => alert("เปิดกล้องไม่ได้"));
     }
 
-   async function checkPoint(cpCode, dist) {
+    async function checkPoint(cpCode, dist) {
         showLoading(true);
         const now = new Date();
         const start = new Date(GUN_START_TIME_STR + "+07:00");
-        
-        // ⏱️ ส่วนต่างเวลาเป็น "นาที"
-        const diffInMs = Math.abs(now - start);
-        const diffInMins = diffInMs / 60000;
-        
+        const diffMs = now.getTime() - start.getTime(); 
         let ps = "0:00";
+
         if (parseFloat(dist) > 0) {
-            const paceDecimal = diffInMins / parseFloat(dist);
-            const pMin = Math.floor(paceDecimal);
-            const pSec = Math.round((paceDecimal - pMin) * 60);
+            const totalMin = (Math.abs(diffMs) / 1000) / 60;
+            const paceDec = totalMin / parseFloat(dist);
+            const pMin = Math.floor(paceDec);
+            const pSec = Math.round((paceDec - pMin) * 60);
             ps = pMin + ":" + pSec.toString().padStart(2, '0');
         }
-
-        console.log("Calculated Pace:", ps); // เช็คใน Console ดูได้ครับ
 
         try {
             await fetch(SCRIPT_URL, { 
                 method: 'POST', 
                 mode: 'no-cors', 
-                body: JSON.stringify({ 
-                    action: 'record', 
-                    bib: currentRunner.bib, 
-                    end: cpCode, 
-                    distance: dist, 
-                    pace: "'" + ps // บังคับส่งเป็น Text ด้วย '
-                }) 
+                body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: "'" + ps }) 
             });
-            // ... ส่วนแจ้งเตือนและเสียงอ่าน (เหมือนเดิม) ...
-            speak(`บันทึกสำเร็จ ระยะ ${dist} กิโลเมตร เพซ ${ps.replace(':', ' นาที ')} วินาที`);
-            cancelVerify();
-        } catch(e) { alert("Error!"); }
-        showLoading(false);
-    }
 
-            // 🎙️ เสียงอ่าน AI ภาษาคน
+            // 🎙️ จัดการเสียงอ่าน AI
             const parts = ps.split(":");
-            const speakMsg = `บันทึกสำเร็จ ระยะ ${dist} กิโลเมตร เพซ ${parseInt(parts[0])} นาที ${parseInt(parts[1])} วินาที ค่ะ`;
-            
-            speak(speakMsg);
+            const speakMsg = `บันทึกสำเร็จ ระยะ ${dist} กม. เพซ ${parseInt(parts[0])} นาที ${parseInt(parts[1])} วินาที ค่ะ`;
+            speak(speakMsg); 
             alert(`บันทึกสำเร็จ! Pace: ${ps}`);
+            
+            if (dist >= 104) {
+                bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
+                document.getElementById('meBib').value = currentRunner.bib; loadMyResult();
+            }
             cancelVerify();
-        } catch(e) { alert("บันทึกล้มเหลว"); }
+        } catch(e) { alert("ล้มเหลว"); }
         showLoading(false);
     }
 
     async function loadRanking() {
-        showLoading(true); const res = await fetch(SCRIPT_URL); allData = await res.json();
-        filterRanking(); showLoading(false);
+        showLoading(true);
+        try {
+            const res = await fetch(SCRIPT_URL); allData = await res.json();
+            filterRanking();
+        } catch(e) {}
+        showLoading(false);
     }
 
     function filterRanking() {
@@ -287,7 +280,9 @@
         allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
             const bib = String(r[2]); const d = parseFloat(r[5]);
             const reg = allData.find(reg => String(reg[2]) === bib && reg[1] === 'REG');
-            if (!summary[bib] || d > summary[bib].dist) summary[bib] = { bib: bib, name: r[3], dist: d, cat: reg?reg[8]:'Solo', gender: reg?reg[7]:'M' };
+            if (!summary[bib] || d > summary[bib].dist) {
+                summary[bib] = { bib: bib, name: r[3], dist: d, cat: reg?reg[8]:'Solo', gender: reg?reg[7]:'M' };
+            }
         });
         const sorted = Object.values(summary).filter(r => {
             if (f === 'All') return true;
@@ -295,6 +290,7 @@
             if (f === 'Solo_F') return r.cat === 'Solo' && r.gender === 'F';
             return r.cat === f;
         }).sort((a,b) => b.dist - a.dist);
+
         let html = '';
         sorted.forEach((r, i) => {
             let icon = (i === 0) ? '🥇' : (i === 1) ? '🥈' : (i === 2) ? '🥉' : i + 1;
@@ -317,27 +313,21 @@
                 const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
                 currentRunner = { bib: bib, name: info[3] };
                 if (maxD >= 104) document.getElementById('certArea').style.display = 'block';
-                // --- วางทับช่วงบรรทัด 312 เป็นต้นไปในรูป B35.png ---
-let html = `<div class="p-3 bg-dark rounded-4 text-center border border-primary mb-3 shadow"><h4>${info[3]}</h4><h2 class="text-warning">${maxD.toFixed(1)} กม.</h2></div>`;
-
-hist.sort((a,b) => b[5] - a[5]).forEach(h => {
-    const thTime = new Date(h[0]).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
-    
-    // ✨ ดึงค่า Pace จากคอลัมน์ K (Index 10)
-    const paceDisplay = h[10] || "--:--"; 
-
-    html += `<div class="history-card shadow">
-                <div class="d-flex justify-content-between">
-                    <b>📍 ${cpNames[h[7]] || h[7]}</b>
-                    <span class="badge bg-primary fs-6">${paceDisplay} P</span>
-                </div>
-                <div class="d-flex justify-content-between small mt-1">
-                    <span>🕒 ${thTime} น.</span>
-                    <span class="text-warning fw-bold">+${h[5]} กม.</span>
-                </div>
-            </div>`;
-});
-document.getElementById('meContent').innerHTML = html;
+                let html = `<div class="p-3 bg-dark rounded-4 text-center border border-primary mb-3 shadow"><h4>${info[3]}</h4><h2 class="text-warning">${maxD.toFixed(1)} กม.</h2></div>`;
+                hist.sort((a,b) => b[5] - a[5]).forEach(h => {
+                    const thTime = new Date(h[0]).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
+                    html += `<div class="history-card shadow">
+                                <div class="d-flex justify-content-between">
+                                    <b>📍 ${cpNames[h[7]] || h[7]}</b>
+                                    <span class="badge bg-primary fs-6">${h[10] || "--:--"} P</span>
+                                </div>
+                                <div class="d-flex justify-content-between small mt-1">
+                                    <span>🕒 ${thTime} น.</span>
+                                    <span class="text-warning fw-bold">+${h[5]} กม.</span>
+                                </div>
+                            </div>`;
+                });
+                document.getElementById('meContent').innerHTML = html;
             }
         } catch(e) {}
         showLoading(false);
