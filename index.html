@@ -161,7 +161,7 @@
         if (audio.paused) { audio.play(); icon.className = "bi bi-pause-fill"; } else { audio.pause(); icon.className = "bi bi-play-fill"; }
     }
 
-    function handleLogoClick() { adminClicks++; if(adminClicks>=5) { alert("Admin Mode: พร้อมปล่อยตัว 16:00 น."); adminClicks=0; } }
+    function handleLogoClick() { adminClicks++; if(adminClicks>=5) { alert("Admin Mode"); adminClicks=0; } }
 
     async function verifyStep1() {
         const bib = document.getElementById('scanBib').value.trim();
@@ -179,22 +179,18 @@
                 document.getElementById('scanStep2').style.display = 'block';
                 speak(`ยืนยันข้อมูล คุณ ${runner[3]} ค่ะ`);
             } else { alert("ไม่พบ BIB"); }
-        } catch(e) { alert("เชื่อมต่อพลาด"); }
+        } catch(e) { alert("เชื่อมต่อผิดพลาด"); }
         showLoading(false);
     }
 
-    // แก้ไข: ปรับหน้าตาประวัติสแกนให้ชัดเจน ไม่ซ้อนกัน
     function showRunnerHistoryScan(bib) {
         const hist = allData.filter(r => String(r[2]) === bib && r[1] === 'RUN');
         let html = '<div class="card bg-black p-3 border-secondary small mt-2"><h6 class="text-warning small fw-bold mb-2">ประวัติจุดสแกนล่าสุด</h6>';
         if(hist.length === 0) html += '<div class="opacity-50 text-center">ยังไม่มีข้อมูล</div>';
         else {
             hist.sort((a,b) => b[5] - a[5]).forEach(h => {
-                const pValue = h[10] ? parseFloat(h[10]).toFixed(2) : "0.00";
-                html += `<div class="d-flex justify-content-between border-bottom border-secondary py-1 text-white">
-                            <span>📍 ${cpNames[h[7]] || h[7]}</span>
-                            <span class="badge bg-primary">${pValue} P</span>
-                         </div>`;
+                const pVal = h[10] ? parseFloat(h[10]).toFixed(2) : "0.00";
+                html += `<div class="d-flex justify-content-between border-bottom border-secondary py-1 text-white"><span>📍 ${cpNames[h[7]] || h[7]}</span><span class="badge bg-primary">${pVal} P</span></div>`;
             });
         }
         html += '</div>';
@@ -231,7 +227,6 @@
         }).catch(err => alert("เปิดกล้องไม่ได้"));
     }
 
-    // แก้ไข: สูตร Pace ฉบับแม่นยำ 100%
     async function checkPoint(cpCode, dist) {
         showLoading(true);
         const nowMs = new Date().getTime(); 
@@ -247,29 +242,21 @@
         }
 
         try {
-            await fetch(SCRIPT_URL, { 
-                method: 'POST', 
-                mode: 'no-cors', 
-                body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) 
-            });
-
+            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: pace }) });
             if (dist >= 104) {
-                const finishMsg = `ไชโย! ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัยสำเร็จแล้ว! คุณคือสุดยอดนักสู้หัวใจเพชรค่ะ`;
-                speak(finishMsg); 
-                alert("🚩 FINISH 104 KM!");
+                speak(`ไชโย! ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัยสำเร็จแล้ว!`);
+                alert("🚩 FINISH!");
                 bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
-                document.getElementById('meBib').value = currentRunner.bib; 
-                loadMyResult();
+                document.getElementById('meBib').value = currentRunner.bib; loadMyResult();
             } else {
                 const msg = `บันทึกจุด ${cpCode} สำเร็จ ระยะ ${dist} กม. Pace คือ ${pace} สู้ต่อไปนะคะ!`;
                 speak(msg); alert(msg);
             }
             cancelVerify();
-        } catch(e) { alert("บันทึกล้มเหลว"); }
+        } catch(e) { alert("ล้มเหลว"); }
         showLoading(false);
     }
 
-    // แก้ไข: อันดับแยกชาย-หญิงให้ทำงานได้จริง
     async function loadRanking() {
         showLoading(true);
         try {
@@ -285,9 +272,7 @@
         allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
             const bib = String(r[2]); const d = parseFloat(r[5]);
             const reg = allData.find(reg => String(reg[2]) === bib && reg[1] === 'REG');
-            if (!summary[bib] || d > summary[bib].dist) {
-                summary[bib] = { bib: bib, name: r[3], dist: d, cat: reg ? reg[8] : 'Solo', gender: reg ? reg[7] : 'M' };
-            }
+            if (!summary[bib] || d > summary[bib].dist) summary[bib] = { bib: bib, name: r[3], dist: d, cat: reg?reg[8]:'Solo', gender: reg?reg[7]:'M' };
         });
         const sorted = Object.values(summary).filter(r => {
             if (f === 'All') return true;
@@ -295,7 +280,6 @@
             if (f === 'Solo_F') return r.cat === 'Solo' && r.gender === 'F';
             return r.cat === f;
         }).sort((a,b) => b.dist - a.dist);
-        
         let html = '';
         sorted.forEach((r, i) => {
             let icon = (i === 0) ? '🥇' : (i === 1) ? '🥈' : (i === 2) ? '🥉' : i + 1;
@@ -318,25 +302,15 @@
                 const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
                 currentRunner = { bib: bib, name: info[3] };
                 if (maxD >= 104) document.getElementById('certArea').style.display = 'block';
-                
                 let html = `<div class="p-3 bg-dark rounded-4 text-center border border-primary mb-3 shadow"><h4>${info[3]}</h4><h2 class="text-warning">${maxD.toFixed(1)} กม.</h2></div>`;
                 hist.sort((a,b) => b[5] - a[5]).forEach(h => {
                     const thTime = new Date(h[0]).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
-                    const pShow = h[10] ? parseFloat(h[10]).toFixed(2) : "0.00";
-                    html += `<div class="history-card shadow">
-                                <div class="d-flex justify-content-between">
-                                    <b>📍 ${cpNames[h[7]] || h[7]}</b>
-                                    <span class="badge bg-primary">${pShow} P</span>
-                                </div>
-                                <div class="d-flex justify-content-between small mt-1">
-                                    <span>🕒 ${thTime} น.</span>
-                                    <span class="text-warning fw-bold">+${h[5]} กม.</span>
-                                </div>
-                            </div>`;
+                    const pS = h[10] ? parseFloat(h[10]).toFixed(2) : "0.00";
+                    html += `<div class="history-card shadow"><div class="d-flex justify-content-between"><b>📍 ${cpNames[h[7]] || h[7]}</b><span class="badge bg-primary">${pS} P</span></div><div class="d-flex justify-content-between small mt-1"><span>🕒 ${thTime} น.</span><span class="text-warning fw-bold">+${h[5]} กม.</span></div></div>`;
                 });
                 document.getElementById('meContent').innerHTML = html;
             }
-        } catch(e) { alert("โหลดข้อมูลผิดพลาด"); }
+        } catch(e) {}
         showLoading(false);
     }
 
@@ -367,7 +341,7 @@
         const modal = new bootstrap.Modal('#infoModal'), t = document.getElementById('infoTitle'), c = document.getElementById('infoContent'), i = document.getElementById('infoIcon');
         if(type==='sos'){ t.innerText="🆘 ฉุกเฉิน"; c.innerText="โทร: 08X-XXX-XXXX"; i.className="bi bi-heart-pulse-fill text-danger"; }
         else if(type==='staff'){ t.innerText="👥 ทีมงาน"; c.innerText="ทีมเชียงของรันเนอร์"; i.className="bi bi-people-fill text-info"; }
-        else { t.innerText="📢 ข่าวสาร"; c.innerText="ยินดีต้อนรับสู่สนาม 104 กม."; i.className="bi bi-megaphone-fill text-warning"; }
+        else { t.innerText="📢 ข่าวสาร"; c.innerText="ยินดีต้อนรับสู่ 104 กม."; i.className="bi bi-megaphone-fill text-warning"; }
         modal.show();
     }
 
@@ -380,11 +354,14 @@
                 await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
                 speak(`ลงทะเบียนสำเร็จแล้วค่ะ คุณ ${name} บิบ ${bib} สแกนสตาร์ทได้เลยค่ะ`);
                 alert("สมัครสำเร็จ!"); location.reload();
-            } catch(e) { alert("สมัครล้มเหลว"); }
+            } catch(e) {}
             showLoading(false);
         });
     });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
 
 
 
