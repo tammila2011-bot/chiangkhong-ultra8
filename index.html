@@ -230,17 +230,15 @@
     async function checkPoint(cpCode, dist) {
         showLoading(true);
         
-        // ⏱️ ดึงเวลาปัจจุบัน และเวลา Gun Start
+        // --- 🎯 ส่วนคำนวณ Pace (ฉบับสมบูรณ์) ---
         const now = new Date();
-        const start = new Date(GUN_START_TIME_STR + "+07:00");
+        const start = new Date(GUN_START_TIME_STR + "+07:00"); // ต้องมีบรรทัดนี้ด้วยครับ!
         
-       // ⏱️ คำนวณส่วนต่างมิลลิวินาที
-        const diffMs = now.getTime() - start.getTime(); // ใช้ .getTime() เพื่อความชัวร์
-        
+        const diffMs = now.getTime() - start.getTime(); 
         let ps = "--:--";
-        // 🏃‍♂️ คำนวณ Pace
+
         if (parseFloat(dist) > 0) {
-            // ถ้า diffMs ติดลบ (สแกนก่อนเวลาเริ่ม) ให้คำนวณจาก 1 นาทีชั่วคราวเพื่อดูผล
+            // ใช้ Math.abs เพื่อให้ทดสอบก่อนเวลาจริงได้ (Pace จะไม่ติดลบ)
             const absDiff = Math.abs(diffMs); 
             const totalMinutes = (absDiff / 1000) / 60;
             const paceDecimal = totalMinutes / parseFloat(dist);
@@ -249,12 +247,7 @@
             const pSec = Math.round((paceDecimal - pMin) * 60);
             ps = pMin + ":" + pSec.toString().padStart(2, '0');
         }
-            
-            // ตรวจสอบไม่ให้ค่าออกมาเพี้ยน (Safety Guard)
-            if (pMin < 1000) { 
-                ps = pMin + ":" + pSec.toString().padStart(2, '0');
-            }
-        }
+        // ---------------------------------------
 
         try {
             await fetch(SCRIPT_URL, { 
@@ -265,22 +258,16 @@
                     bib: currentRunner.bib, 
                     end: cpCode, 
                     distance: dist, 
-                    pace: ps  // ส่งค่า "นาที:วินาที" ไปบันทึก
+                    pace: ps  // ส่ง ps (ตัวแปรที่เราเพิ่งคำนวณ) ไปครับ
                 }) 
             });
 
-            if (dist >= 104) {
-                speak(`ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัยสำเร็จแล้ว!`);
-                alert("🚩 FINISH!");
-                bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
-                document.getElementById('meBib').value = currentRunner.bib; 
-                loadMyResult();
-            } else {
-                const msg = `บันทึกจุด ${cpCode} ระยะ ${dist} กม. Pace คือ ${ps}`;
-                speak(msg); alert(msg);
-            }
-            cancelVerify();
-        } catch(e) { alert("ล้มเหลว"); }
+            const msg = (dist >= 104) ? `ยินดีด้วยค่ะคุณ ${currentRunner.name} เข้าเส้นชัยสำเร็จ!` : `บันทึกสำเร็จ ระยะ ${dist} กม. Pace คือ ${ps}`;
+            speak(msg); alert(msg);
+            cancelVerify(); // รีเซ็ตหน้าจอเพื่อรับคนต่อไป
+        } catch(e) { 
+            alert("บันทึกล้มเหลว"); 
+        }
         showLoading(false);
     }
 
