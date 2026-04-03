@@ -408,7 +408,7 @@
         const bib = document.getElementById('meBib')?.value || "A002";
         const name = "คุณนักวิ่ง"; // หรือดึงจากตัวแปรระบบ
         const type = "SOLO";
-        const rank = "อันดับที่ 1"; 
+        const rank = "อันดับ 1"; 
         const time = "Time 12:45:00";
         const pace = "Pace 7:25";
 
@@ -422,8 +422,8 @@
 ctx.font = "bold 100px Kanit"; // รักษาขนาดฟอนต์เดิมไว้
 
 // 🔮 พิกัดจูนใหม่: ขยับขวา + ขยับลง
-const rankX = 260, timeX = 550, paceX = 1210; // 🪄 ขยับ X ให้ตรงช่องไข่ปลา
-const line2Y = 500; // 🪄 ขยับ Y ลงมาอีก 10-15 พิกเซล เพื่อไม่ให้ชนบรรทัดบน
+const rankX = 200, timeX = 500, paceX = 1300; // 🪄 ขยับ X ให้ตรงช่องไข่ปลา
+const line2Y = 600; // 🪄 ขยับ Y ลงมาอีก 10-15 พิกเซล เพื่อไม่ให้ชนบรรทัดบน
 
 // วาดข้อความด้วยพิกัดใหม่
 ctx.fillText(rank, rankX, line2Y);  
