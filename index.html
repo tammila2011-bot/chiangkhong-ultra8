@@ -367,62 +367,53 @@
         showLoading(false);
     }
 
-    function generateCertificate() {
+    async function generateCertificate() {
+    console.log("กำลังสร้างใบประกาศสีทอง...");
     const canvas = document.getElementById('certCanvas');
-    if (!canvas) {
-        alert("ขออภัย! ระบบสร้างเกียรติบัตรขัดข้อง กรุณาลองใหม่ครับ");
-        return;
-    }
+    if (!canvas) { alert("ไม่พบพื้นที่วาดใบประกาศ (certCanvas)"); return; }
+    
     const ctx = canvas.getContext('2d');
-    
-    // --- สมมติฐาน: รูปพื้นหลัง Cert ถูกวาดลงบน Canvas เรียบร้อยแล้ว ---
-    
-    // ตั้งค่าฟอนต์หลักและสีพื้นฐาน (สีเหลืองทอง)
-    const goldenColor = "#FFC107"; // สีเหลืองทองสง่างาม
-    const fontFamily = "Kanit, sans-serif"; // แนะนำ Kanit เพื่อความคมชัด
+    const img = new Image();
+    img.src = 'certificate_bg.png'; // ตรวจสอบชื่อไฟล์ให้ตรงนะครับ
 
-    // --- ส่วนที่ 1: กำหนดข้อมูลที่จะนำมาพิมพ์ (จากตัวแปรในระบบ) ---
-    // หมายเหตุ: อาจารย์ต้องตรวจสอบชื่อตัวแปรในระบบของอาจารย์ให้ตรงกันนะครับ
-    // ตัวอย่าง: name, totalDist, myRank, etc.
-    const runType = totalDist >= 104 ? "Ultra 104 Km." : "Distance Runner"; // ประเภทการวิ่ง
-    
-    // ตัวแปรสมมติ (อาจารย์ต้องดึงค่าจริงมาใส่ตรงนี้)
-    const runBib = localStorage.getItem('lastUsedBib') || "123454"; 
-    const runName = name || "Man";
-    const runRank = myRank || "47";
-    const runTime = "12:30:15"; // สมมติเวลา (อาจารย์ต้องคำนวณ)
-    const runPace = "7:12";     // สมมติ Pace (อาจารย์ต้องคำนวณ)
+    img.onload = function() {
+        // 1. วาดรูปพื้นหลัง
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
 
+        // 2. ตั้งค่าฟอนต์และสีเหลืองทอง (Golden Yellow)
+        const goldColor = "#FFD700"; 
+        ctx.fillStyle = goldColor;
+        ctx.shadowColor = "rgba(0,0,0,0.5)"; // เพิ่มเงาให้ตัวหนังสือดูนูน
+        ctx.shadowBlur = 4;
+        
+        // --- ส่วนที่ 1: BIB, ชื่อ, ประเภทวิ่ง ---
+        ctx.font = "bold 30px Kanit"; // ปรับขนาดตามความเหมาะสม
+        ctx.textAlign = "left";
+        
+        const bib = document.getElementById('meBib')?.value || "---";
+        const name = document.getElementById('displayRunnerName')?.innerText || "นักวิ่ง";
+        const type = "ULTRA 104 KM."; // หรือดึงจากระบบ
 
-    // --- ส่วนที่ 2: วาดข้อความลงตำแหน่งที่อาจารย์กำหนด (อิงตาม image_10.png) ---
+        ctx.fillText(bib, 180, 215);    // ตำแหน่ง Bib
+        ctx.fillText(name, 350, 215);   // ตำแหน่ง Name
+        ctx.fillText(type, 650, 215);   // ตำแหน่ง ประเภทวิ่ง
 
-    // ** บรรทัดแรก: BIB, ชื่อ, ประเภท **
-    ctx.font = `bold 22px ${fontFamily}`; // ปรับขนาดตามความเหมาะสม
-    ctx.fillStyle = goldenColor;
-    ctx.textAlign = "start"; // เริ่มจากซ้าย
-    
-    const startY_line1 = 200; // ค่า Y สำหรับบรรทัดแรก (ปรับให้ตรง)
-    const startX_line1 = 150; // ค่า X สำหรับบรรทัดแรก (ปรับให้ตรง)
+        // --- ส่วนที่ 2: ลำดับ, เวลา, Pace ---
+        ctx.font = "bold 28px Kanit";
+        const rank = document.getElementById('myRankDisplay')?.innerText.replace(/\D/g,'') || "-";
+        const time = "12:45:00"; // ตรงนี้อาจารย์ต้องนำตัวแปรเวลามาใส่
+        const pace = "7:25";     // ตรงนี้อาจารย์ต้องนำตัวแปร Pace มาใส่
 
-    // พิมพ์แบบจัดตำแหน่งด้วยช่องว่าง
-    ctx.fillText(`Bib: ${runBib}    Name: ${runName}        ประเภทการวิ่ง: ${runType}`, startX_line1, startY_line1);
+        ctx.fillText(rank, 180, 265);   // ตำแหน่ง ลำดับ
+        ctx.fillText(time, 350, 265);   // ตำแหน่ง Time
+        ctx.fillText(pace, 580, 265);   // ตำแหน่ง Pace
 
-
-    // ** บรรทัดที่สอง: ลำดับที่, เวลา, Pace **
-    ctx.font = `bold 20px ${fontFamily}`; // ปรับขนาดตามความเหมาะสม (เล็กกว่าบรรทัดแรกนิดหน่อย)
-    ctx.fillStyle = goldenColor;
-    ctx.textAlign = "start"; // เริ่มจากซ้าย
-    
-    const startY_line2 = 235; // ค่า Y สำหรับบรรทัดที่สอง (ห่างจากบรรทัดแรก 35px)
-    const startX_line2 = 170; // ค่า X สำหรับบรรทัดที่สอง (ปรับให้ตรง)
-
-    // พิมพ์แบบจัดตำแหน่งด้วยช่องว่าง
-    ctx.fillText(`ลำดับ: ${runRank}      Time: ${runTime}        Pace: ${runPace}`, startX_line2, startY_line2);
-
-    // --- ส่วนที่ 3: สั่งวาดเส้นทางแสงเรืองรอง (Optional เพื่อความเทพ) ---
-    // อาจจะทำเอฟเฟกต์แสงทองเรืองรองรอบๆ ปลาบึก เพื่อให้กลมกลืนกับรูปพื้นหลัง
-
-    console.log("ใบประกาศฯ ของคุณ " + runName + " (BIB: " + runBib + ") สร้างสำเร็จแล้ว!");
+        // 3. เปิดม่านแสดงผล
+        document.getElementById('certCanvas').style.display = 'block';
+        canvas.scrollIntoView({ behavior: 'smooth' });
+    };
 }
 
     function cancelVerify() {
