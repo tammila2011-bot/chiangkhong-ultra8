@@ -418,10 +418,17 @@
         ctx.fillText(name, 310, 225);  
         ctx.fillText(type, 610, 225);  
 
-        ctx.font = "bold 30px Kanit"; // บรรทัดที่สอง
-        ctx.fillText(rank, 140, 275);  
-        ctx.fillText(time, 310, 275);  
-        ctx.fillText(pace, 550, 275);  
+        // --- ส่วนบรรทัดล่าง: ลำดับ, เวลา, Pace ---
+ctx.font = "bold 30px Kanit"; // รักษาขนาดฟอนต์เดิมไว้
+
+// 🔮 พิกัดจูนใหม่: ขยับขวา + ขยับลง
+const rankX = 180, timeX = 400, paceX = 720; // 🪄 ขยับ X ให้ตรงช่องไข่ปลา
+const line2Y = 285; // 🪄 ขยับ Y ลงมาอีก 10-15 พิกเซล เพื่อไม่ให้ชนบรรทัดบน
+
+// วาดข้อความด้วยพิกัดใหม่
+ctx.fillText(rank, rankX, line2Y);  
+ctx.fillText(time, timeX, line2Y);  
+ctx.fillText(pace, paceX, line2Y);  
 
         // 2. แสดง Wrapper ของใบประกาศ
         document.getElementById('certWrapper').style.display = 'block';
