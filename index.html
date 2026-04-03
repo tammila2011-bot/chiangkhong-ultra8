@@ -435,6 +435,21 @@ ctx.fillText(pace, paceX, line2Y);
         
         // 3. เลื่อนหน้าจอไปที่ใบประกาศนิ่มๆ
         document.getElementById('certWrapper').scrollIntoView({ behavior: 'smooth' });
+    // --- 🪄 มนต์เสก Canvas เป็นรูปภาพ ---
+        const dataURL = canvas.toDataURL("image/png"); // แปลงสิ่งที่วาดเป็นข้อมูลรูป
+        const finalImg = new Image();
+        finalImg.src = dataURL;
+        finalImg.style.width = "100%";
+        finalImg.style.borderRadius = "15px";
+        
+        // เอาไปใส่ใน Wrapper แล้วซ่อน Canvas ตัวจริงไว้
+        const wrapper = document.getElementById('certWrapper');
+        canvas.style.display = 'none'; // ซ่อนตัววาด
+        
+        // ล้างรูปเก่า (ถ้ามี) แล้วใส่รูปใหม่เข้าไปแทน
+        const oldImg = wrapper.querySelector('img');
+        if(oldImg) oldImg.remove();
+        wrapper.insertBefore(finalImg, wrapper.querySelector('p'));
     };
 }
 
