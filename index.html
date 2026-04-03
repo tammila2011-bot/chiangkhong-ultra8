@@ -408,21 +408,21 @@
         const bib = document.getElementById('meBib')?.value || "A002";
         const name = "คุณนักวิ่ง"; // หรือดึงจากตัวแปรระบบ
         const type = "SOLO";
-        const rank = "อันดับ 1"; 
+        const rank = "Rank 1"; 
         const time = "Time 12:45:00";
         const pace = "Pace 7:25";
 
         // --- ปรับตำแหน่งใหม่ (ขยับลงมาจากเดิมเพื่อให้ตรงช่อง) ---
         ctx.font = "bold 100px Kanit"; // บรรทัดแรก
-        ctx.fillText(bib, 260, 420);   
-        ctx.fillText(name, 550, 420);  
-        ctx.fillText(type, 1210, 420);  
+        ctx.fillText(bib, 260, 430);   
+        ctx.fillText(name, 550, 430);  
+        ctx.fillText(type, 1210, 430);  
 
         // --- ส่วนบรรทัดล่าง: ลำดับ, เวลา, Pace ---
 ctx.font = "bold 100px Kanit"; // รักษาขนาดฟอนต์เดิมไว้
 
 // 🔮 พิกัดจูนใหม่: ขยับขวา + ขยับลง
-const rankX = 200, timeX = 500, paceX = 1300; // 🪄 ขยับ X ให้ตรงช่องไข่ปลา
+const rankX = 160, timeX = 600, paceX = 1400; // 🪄 ขยับ X ให้ตรงช่องไข่ปลา
 const line2Y = 600; // 🪄 ขยับ Y ลงมาอีก 10-15 พิกเซล เพื่อไม่ให้ชนบรรทัดบน
 
 // วาดข้อความด้วยพิกัดใหม่
