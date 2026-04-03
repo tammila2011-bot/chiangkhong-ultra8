@@ -392,8 +392,8 @@
 
     function showMsg(type) {
         const modal = new bootstrap.Modal('#infoModal'), t = document.getElementById('infoTitle'), c = document.getElementById('infoContent'), i = document.getElementById('infoIcon');
-        if(type==='sos'){ t.innerText="🆘 ฉุกเฉิน"; c.innerText="โทร: 08X-XXX-XXXX"; i.className="bi bi-heart-pulse-fill text-danger"; }
-        else if(type==='staff'){ t.innerText="👥 ทีมงาน"; c.innerText="ทีมเชียงของรันเนอร์"; i.className="bi bi-people-fill text-info"; }
+        if(type==='sos'){ t.innerText="🆘 ฉุกเฉิน"; c.innerText="กู้ภัยบุญช่วย โทร: 089-632-5854"; i.className="bi bi-heart-pulse-fill text-danger"; }
+        else if(type==='staff'){ t.innerText="👥 ทีมงาน"; c.innerText="083-2082280 , 090-8860909 "; i.className="bi bi-people-fill text-info"; }
         else { t.innerText="📢 ข่าวสาร"; c.innerText="ยินดีต้อนรับสู่สนาม 104 กม."; i.className="bi bi-megaphone-fill text-warning"; }
         modal.show();
     }
