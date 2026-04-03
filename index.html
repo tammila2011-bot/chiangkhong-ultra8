@@ -385,71 +385,65 @@
     }
 
     async function generateCertificate() {
-    // 1. ซ่อนหน้าผลงานส่วนตัวก่อน เพื่อให้ใบประกาศเด่นๆ
+    // 1. ซ่อนส่วนผลงานและเตรียมพื้นที่ใบประกาศ
     const meContent = document.getElementById('meContent');
     if(meContent) meContent.style.display = 'none';
 
     const canvas = document.getElementById('certCanvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
-    img.src = 'certificate_bg.png'; 
+    img.src = 'certificate_bg.png'; // ตรวจสอบว่าชื่อไฟล์ในโฮสต์ตรงกันนะครับ
 
     img.onload = function() {
-        // วาดรูปขนาดจริงเพื่อให้ภาพชัด
+        // วาดรูปขนาดจริงเพื่อให้ภาพคมชัดสูงสุด
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
 
-        // ตั้งค่าตัวอักษรสีทอง
+        // --- ตั้งค่าตัวอักษรสีทองสง่างาม ---
         ctx.fillStyle = "#FFD700";
         ctx.textAlign = "left";
         
-        // --- ดึงข้อมูลจริงจากหน้าจอ ---
+        // --- ดึงข้อมูลจริงจากระบบ (อาจารย์สามารถดึงจากตัวแปร Global ได้) ---
         const bib = document.getElementById('meBib')?.value || "A002";
-        const name = "คุณนักวิ่ง"; // หรือดึงจากตัวแปรระบบ
-        const type = "SOLO";
-        const rank = "Rank 1"; 
+        const name = document.getElementById('displayRunnerName')?.innerText || "คุณนักวิ่ง";
+        const type = "SOLO"; // หรือดึงจากตัวแปรประเภทการวิ่ง
+        const rank = "Rank 1";  
         const time = "Time 12:45:00";
         const pace = "Pace 7:25";
 
-        // --- ปรับตำแหน่งใหม่ (ขยับลงมาจากเดิมเพื่อให้ตรงช่อง) ---
-        ctx.font = "bold 100px Kanit"; // บรรทัดแรก
+        // --- 🚩 บรรทัดบน: BIB, ชื่อ, ประเภท (พิกัดจูนโดยอาจารย์) ---
+        ctx.font = "bold 100px Kanit"; 
         ctx.fillText(bib, 260, 440);   
         ctx.fillText(name, 550, 440);  
         ctx.fillText(type, 1550, 440);  
 
-        // --- ส่วนบรรทัดล่าง: ลำดับ, เวลา, Pace ---
-ctx.font = "bold 100px Kanit"; // รักษาขนาดฟอนต์เดิมไว้
+        // --- 🚩 บรรทัดล่าง: ลำดับ, เวลา, Pace (พิกัดจูนโดยอาจารย์) ---
+        // ใช้ค่าที่อาจารย์จูนมาล่าสุด rankX=160, timeX=650, paceX=1400, Y=600
+        ctx.fillText(rank, 160, 600);  
+        ctx.fillText(time, 650, 600);  
+        ctx.fillText(pace, 1400, 600);  
 
-// 🔮 พิกัดจูนใหม่: ขยับขวา + ขยับลง
-const rankX = 160, timeX = 650, paceX = 1400; // 🪄 ขยับ X ให้ตรงช่องไข่ปลา
-const line2Y = 600; // 🪄 ขยับ Y ลงมาอีก 10-15 พิกเซล เพื่อไม่ให้ชนบรรทัดบน
-
-// วาดข้อความด้วยพิกัดใหม่
-ctx.fillText(rank, rankX, line2Y);  
-ctx.fillText(time, timeX, line2Y);  
-ctx.fillText(pace, paceX, line2Y);  
-
-        // 2. แสดง Wrapper ของใบประกาศ
-        document.getElementById('certWrapper').style.display = 'block';
-        
-        // 3. เลื่อนหน้าจอไปที่ใบประกาศนิ่มๆ
-        document.getElementById('certWrapper').scrollIntoView({ behavior: 'smooth' });
-    // --- 🪄 มนต์เสก Canvas เป็นรูปภาพ ---
-        const dataURL = canvas.toDataURL("image/png"); // แปลงสิ่งที่วาดเป็นข้อมูลรูป
+        // --- 🪄 มนต์เสก Canvas เป็นรูปภาพเพื่อให้กดค้างบันทึกได้ ---
+        const dataURL = canvas.toDataURL("image/png");
         const finalImg = new Image();
         finalImg.src = dataURL;
         finalImg.style.width = "100%";
         finalImg.style.borderRadius = "15px";
         
-        // เอาไปใส่ใน Wrapper แล้วซ่อน Canvas ตัวจริงไว้
         const wrapper = document.getElementById('certWrapper');
-        canvas.style.display = 'none'; // ซ่อนตัววาด
+        canvas.style.display = 'none'; // ซ่อนตัววาด (เพราะเราจะใช้รูปภาพแทน)
         
-        // ล้างรูปเก่า (ถ้ามี) แล้วใส่รูปใหม่เข้าไปแทน
+        // ล้างรูปเก่า (ถ้ามี) แล้วใส่รูปใหม่เข้าไปแทนที่เหนือข้อความอธิบาย
         const oldImg = wrapper.querySelector('img');
         if(oldImg) oldImg.remove();
         wrapper.insertBefore(finalImg, wrapper.querySelector('p'));
+
+        // 2. แสดงส่วนใบประกาศ
+        wrapper.style.display = 'block';
+        
+        // 3. เลื่อนหน้าจอไปหาใบประกาศนิ่มๆ
+        wrapper.scrollIntoView({ behavior: 'smooth' });
     };
 }
 
