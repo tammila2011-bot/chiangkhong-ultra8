@@ -368,51 +368,49 @@
     }
 
     async function generateCertificate() {
-    console.log("กำลังสร้างใบประกาศสีทอง...");
+    // 1. ซ่อนหน้าผลงานส่วนตัวก่อน เพื่อให้ใบประกาศเด่นๆ
+    const meContent = document.getElementById('meContent');
+    if(meContent) meContent.style.display = 'none';
+
     const canvas = document.getElementById('certCanvas');
-    if (!canvas) { alert("ไม่พบพื้นที่วาดใบประกาศ (certCanvas)"); return; }
-    
     const ctx = canvas.getContext('2d');
     const img = new Image();
-    img.src = 'certificate_bg.png'; // ตรวจสอบชื่อไฟล์ให้ตรงนะครับ
+    img.src = 'certificate_bg.png'; 
 
     img.onload = function() {
-        // 1. วาดรูปพื้นหลัง
+        // วาดรูปขนาดจริงเพื่อให้ภาพชัด
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
 
-        // 2. ตั้งค่าฟอนต์และสีเหลืองทอง (Golden Yellow)
-        const goldColor = "#FFD700"; 
-        ctx.fillStyle = goldColor;
-        ctx.shadowColor = "rgba(0,0,0,0.5)"; // เพิ่มเงาให้ตัวหนังสือดูนูน
-        ctx.shadowBlur = 4;
-        
-        // --- ส่วนที่ 1: BIB, ชื่อ, ประเภทวิ่ง ---
-        ctx.font = "bold 30px Kanit"; // ปรับขนาดตามความเหมาะสม
+        // ตั้งค่าตัวอักษรสีทอง
+        ctx.fillStyle = "#FFD700";
         ctx.textAlign = "left";
         
-        const bib = document.getElementById('meBib')?.value || "---";
-        const name = document.getElementById('displayRunnerName')?.innerText || "นักวิ่ง";
-        const type = "ULTRA 104 KM."; // หรือดึงจากระบบ
+        // --- ดึงข้อมูลจริงจากหน้าจอ ---
+        const bib = document.getElementById('meBib')?.value || "A002";
+        const name = "คุณนักวิ่ง"; // หรือดึงจากตัวแปรระบบ
+        const type = "ULTRA 104 KM.";
+        const rank = "1"; 
+        const time = "12:45:00";
+        const pace = "7:25";
 
-        ctx.fillText(bib, 180, 215);    // ตำแหน่ง Bib
-        ctx.fillText(name, 350, 215);   // ตำแหน่ง Name
-        ctx.fillText(type, 650, 215);   // ตำแหน่ง ประเภทวิ่ง
+        // --- ปรับตำแหน่งใหม่ (ขยับลงมาจากเดิมเพื่อให้ตรงช่อง) ---
+        ctx.font = "bold 34px Kanit"; // บรรทัดแรก
+        ctx.fillText(bib, 140, 225);   
+        ctx.fillText(name, 310, 225);  
+        ctx.fillText(type, 610, 225);  
 
-        // --- ส่วนที่ 2: ลำดับ, เวลา, Pace ---
-        ctx.font = "bold 28px Kanit";
-        const rank = document.getElementById('myRankDisplay')?.innerText.replace(/\D/g,'') || "-";
-        const time = "12:45:00"; // ตรงนี้อาจารย์ต้องนำตัวแปรเวลามาใส่
-        const pace = "7:25";     // ตรงนี้อาจารย์ต้องนำตัวแปร Pace มาใส่
+        ctx.font = "bold 30px Kanit"; // บรรทัดที่สอง
+        ctx.fillText(rank, 140, 275);  
+        ctx.fillText(time, 310, 275);  
+        ctx.fillText(pace, 550, 275);  
 
-        ctx.fillText(rank, 180, 265);   // ตำแหน่ง ลำดับ
-        ctx.fillText(time, 350, 265);   // ตำแหน่ง Time
-        ctx.fillText(pace, 580, 265);   // ตำแหน่ง Pace
-
-        // 3. เปิดม่านแสดงผล
-        document.getElementById('certCanvas').style.display = 'block';
-        canvas.scrollIntoView({ behavior: 'smooth' });
+        // 2. แสดง Wrapper ของใบประกาศ
+        document.getElementById('certWrapper').style.display = 'block';
+        
+        // 3. เลื่อนหน้าจอไปที่ใบประกาศนิ่มๆ
+        document.getElementById('certWrapper').scrollIntoView({ behavior: 'smooth' });
     };
 }
 
