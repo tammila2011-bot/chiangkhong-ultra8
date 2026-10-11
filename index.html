@@ -70,7 +70,7 @@
                     <div id="reader"></div>
                     <div class="d-grid" id="btnArea">
                         <button class="btn btn-dark btn-checkpoint" onclick="scanCP('Start', 0)">🚩 Start (กม.0)</button>
-                        <button class="btn btn-success btn-checkpoint" onclick="scanCP('CP1', 7)">📍 CP-1 (กม.7)</button>
+                        <button class="btn btn-secondary btn-checkpoint" disabled>📍 CP-1 (กม.7 - ผ่านเลี่ยงทางลอด)</button>
                         <button class="btn btn-success btn-checkpoint" onclick="scanCP('CP2', 56)">📍 CP-2 (กม.56)</button>
                         <button class="btn btn-success btn-checkpoint" onclick="scanCP('CP3', 72)">📍 CP-3 (กม.72)</button>
                         <button class="btn btn-success btn-checkpoint" onclick="scanCP('CP4', 89)">📍 CP-4 (กม.89)</button>
@@ -126,8 +126,7 @@
                     <p class="text-white-50 small mt-3">💡 กดค้างที่รูปเพื่อ "บันทึกรูปภาพ" ลงมือถือ</p>
                     <button onclick="location.reload()" class="btn btn-outline-light btn-sm mt-2">🔄 กลับไปหน้าสถิติ</button>
                 </div>
-            </div> </div> 
-            </div>
+            </div> 
         </div>
 
         <div class="tab-pane fade" id="tab-reg">
@@ -165,11 +164,11 @@
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1KkxYzfmMQKHebhoUj_MqjhSjLXAA03bbR_Q0_vNA6b6Llowso-yN4cbfjFyoPxldEg/exec";
-    // ⚠️ วันทดสอบอย่าลืมปรับเป็นเวลาปัจจุบันนะครับ
-    const GUN_START_TIME_STR = "2026-04-02T18:20:00"; 
+    // 🚩 เวลาปล่อยตัววันจริง (ปรับใช้เวลาจริง)
+    const GUN_START_TIME_STR = "2026-12-05T16:00:00"; 
     let currentRunner = null, allData = [], html5QrCode = null, adminClicks = 0;
 
-    const cpNames = { 'Start': 'จุดปล่อยตัว', 'CP1': 'หน้าบิ๊กซี สนามบิน', 'CP2': 'รพ.สต.บ้านแซว', 'CP3': 'รพ.สต.บ้านไร่', 'CP4': 'จุดชมวิวห้วยทรายมาน', 'CP5': 'วัดหาดไคร้', 'CP6': 'ศาลา 104 เชียงของ' };
+    const cpNames = { 'Start': 'จุดปล่อยตัว', 'CP1': 'หน้าบิ๊กซี สนามบิน (ทางลอด)', 'CP2': 'รพ.สต.บ้านแซว', 'CP3': 'รพ.สต.บ้านไร่', 'CP4': 'จุดชมวิวห้วยทรายมาน', 'CP5': 'วัดหาดไคร้', 'CP6': 'ศาลา 104 เชียงของ' };
 
     function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
     function speak(text) { if (!window.speechSynthesis) return; window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.lang = 'th-TH'; msg.rate = 1.0; window.speechSynthesis.speak(msg); }
@@ -226,7 +225,15 @@
         const dists = [0, 7, 56, 72, 89, 103, 104];
         document.querySelectorAll('.btn-checkpoint').forEach((btn, i) => {
             btn.classList.remove('btn-pulse');
-            if (dists[i] <= maxD) { btn.disabled = true; btn.style.opacity = "0.3"; btn.innerHTML = "✅ " + (btn.innerText.includes(')') ? btn.innerText.split(') ')[1] : btn.innerText); }
+            if (dists[i] <= maxD) { 
+                btn.disabled = true; 
+                btn.style.opacity = "0.3"; 
+                if(i === 1) {
+                    btn.innerHTML = "✅ CP-1 (ผ่านอัตโนมัติ)";
+                } else {
+                    btn.innerHTML = "✅ " + (btn.innerText.includes(')') ? btn.innerText.split(') ')[1] : btn.innerText); 
+                }
+            }
             else if (i > 0 && dists[i-1] > maxD) { btn.disabled = true; btn.style.opacity = "0.1"; }
             else { btn.disabled = false; btn.style.opacity = "1"; btn.classList.add('btn-pulse'); }
         });
@@ -261,17 +268,41 @@
         }
 
         try {
+            // บันทึกจุดปัจจุบัน
             await fetch(SCRIPT_URL, { 
                 method: 'POST', 
                 mode: 'no-cors', 
                 body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: "'" + ps }) 
             });
 
+            // 🚩 กรณีสแกน Start (กม.0) -> ทำการอัปเดตบันทึกจุด CP1 (กม.7) ให้อัตโนมัติทันที
+            if (cpCode === 'Start') {
+                let cp1Pace = "0:00";
+                if (7 > 0) {
+                    const totalMin1 = (Math.abs(diffMs) / 1000) / 60;
+                    const paceDec1 = totalMin1 / 7;
+                    const pMin1 = Math.floor(paceDec1);
+                    const pSec1 = Math.round((paceDec1 - pMin1) * 60);
+                    cp1Pace = pMin1 + ":" + pSec1.toString().padStart(2, '0');
+                }
+                await fetch(SCRIPT_URL, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: 'CP1', distance: 7, pace: "'" + cp1Pace }) 
+                });
+            }
+
             // 🎙️ จัดการเสียงอ่าน AI
             const parts = ps.split(":");
-            const speakMsg = `บันทึกสำเร็จ ระยะ ${dist} กม. เพซ ${parseInt(parts[0])} นาที ${parseInt(parts[1])} วินาที ค่ะ`;
+            let speakMsg = "";
+            if (cpCode === 'Start') {
+                speakMsg = `บันทึกจุดปล่อยตัวสำเร็จ ระบบบันทึกผ่านจุด ซีพี 1 บิ๊กซี ให้อัตโนมัติแล้วค่ะ สู้ๆ นะคะ`;
+                alert(`บันทึกจุดปล่อยตัวสำเร็จ!\n(ระบบผ่านจุด CP1 บิ๊กซี ให้อัตโนมัติแล้ว)`);
+            } else {
+                speakMsg = `บันทึกสำเร็จ ระยะ ${dist} กม. เพซ ${parseInt(parts[0])} นาที ${parseInt(parts[1])} วินาที ค่ะ`;
+                alert(`บันทึกสำเร็จ! Pace: ${ps}`);
+            }
             speak(speakMsg); 
-            alert(`บันทึกสำเร็จ! Pace: ${ps}`);
             
             if (dist >= 104) {
                 bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
@@ -292,22 +323,19 @@
     }
 
     function filterRanking() {
-        const f = document.getElementById('rankFilter').value; // ค่าจาก Select
+        const f = document.getElementById('rankFilter').value;
         const summary = {};
         
-        // 1. รวบรวมข้อมูลล่าสุดของนักวิ่งแต่ละคน
         allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
             const bib = String(r[2]).trim();
             const d = parseFloat(r[5]) || 0;
             
-            // ค้นหาข้อมูลการลงทะเบียน (REG) เพื่อดูเพศและประเภท
             const reg = allData.find(reg => reg[1] === 'REG' && String(reg[2]).trim() === bib);
             
             if (reg) {
-                const cat = reg[8];    // ประเภท เช่น Solo, Couple, Team3
-                const gender = reg[9]; // เพศ เช่น M, F
+                const cat = reg[8];    
+                const gender = reg[9]; 
                 
-                // เก็บเฉพาะระยะที่มากที่สุดของ BIB นั้นๆ
                 if (!summary[bib] || d > summary[bib].dist) {
                     summary[bib] = { 
                         bib: bib, 
@@ -320,7 +348,6 @@
             }
         });
 
-        // 2. กรองข้อมูลตามเงื่อนไขที่เลือก
         const sorted = Object.values(summary).filter(r => {
             if (f === 'All') return true;
             if (f === 'Solo_M') return (r.cat === 'Solo' && r.gender === 'M');
@@ -329,9 +356,8 @@
             if (f === 'Team3') return (r.cat === 'Team3');
             if (f === 'Team10') return (r.cat === 'Team10');
             return false;
-        }).sort((a, b) => b.dist - a.dist); // เรียงจากระยะทางมากไปน้อย
+        }).sort((a, b) => b.dist - a.dist);
 
-        // 3. สร้าง HTML ตาราง
         let html = '';
         if (sorted.length === 0) {
             html = '<tr><td colspan="4" class="text-center opacity-50">--- ยังไม่มีข้อมูลในประเภทนี้ ---</td></tr>';
@@ -385,67 +411,55 @@
     }
 
     async function generateCertificate() {
-    // 1. ซ่อนส่วนผลงานและเตรียมพื้นที่ใบประกาศ
-    const meContent = document.getElementById('meContent');
-    if(meContent) meContent.style.display = 'none';
+        const meContent = document.getElementById('meContent');
+        if(meContent) meContent.style.display = 'none';
 
-    const canvas = document.getElementById('certCanvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.src = 'certificate_bg.png'; // ตรวจสอบว่าชื่อไฟล์ในโฮสต์ตรงกันนะครับ
+        const canvas = document.getElementById('certCanvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = 'certificate_bg.png'; 
 
-    img.onload = function() {
-        // วาดรูปขนาดจริงเพื่อให้ภาพคมชัดสูงสุด
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
+        img.onload = function() {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
 
-        // --- ตั้งค่าตัวอักษรสีทองสง่างาม ---
-        ctx.fillStyle = "#FFD700";
-        ctx.textAlign = "left";
-        
-        // --- ดึงข้อมูลจริงจากระบบ (อาจารย์สามารถดึงจากตัวแปร Global ได้) ---
-        const bib = document.getElementById('meBib')?.value || "A002";
-        const name = document.getElementById('displayRunnerName')?.innerText || "คุณนักวิ่ง";
-        const type = "SOLO"; // หรือดึงจากตัวแปรประเภทการวิ่ง
-        const rank = "Rank 1";  
-        const time = "Time 12:45:00";
-        const pace = "Pace 7:25";
+            ctx.fillStyle = "#FFD700";
+            ctx.textAlign = "left";
+            
+            const bib = document.getElementById('meBib')?.value || "A002";
+            const name = currentRunner ? currentRunner.name : "คุณนักวิ่ง";
+            const type = "SOLO"; 
+            const rank = "Rank 1";  
+            const time = "Time 12:45:00";
+            const pace = "Pace 7:25";
 
-        // --- 🚩 บรรทัดบน: BIB, ชื่อ, ประเภท (พิกัดจูนโดยอาจารย์) ---
-        ctx.font = "bold 100px Kanit"; 
-        ctx.fillText(bib, 260, 440);   
-        ctx.fillText(name, 550, 440);  
-        ctx.fillText(type, 1550, 440);  
+            ctx.font = "bold 100px Kanit"; 
+            ctx.fillText(bib, 260, 440);   
+            ctx.fillText(name, 550, 440);  
+            ctx.fillText(type, 1550, 440);  
 
-        // --- 🚩 บรรทัดล่าง: ลำดับ, เวลา, Pace (พิกัดจูนโดยอาจารย์) ---
-        // ใช้ค่าที่อาจารย์จูนมาล่าสุด rankX=160, timeX=650, paceX=1400, Y=600
-        ctx.fillText(rank, 160, 600);  
-        ctx.fillText(time, 650, 600);  
-        ctx.fillText(pace, 1400, 600);  
+            ctx.fillText(rank, 160, 600);  
+            ctx.fillText(time, 650, 600);  
+            ctx.fillText(pace, 1400, 600);  
 
-        // --- 🪄 มนต์เสก Canvas เป็นรูปภาพเพื่อให้กดค้างบันทึกได้ ---
-        const dataURL = canvas.toDataURL("image/png");
-        const finalImg = new Image();
-        finalImg.src = dataURL;
-        finalImg.style.width = "100%";
-        finalImg.style.borderRadius = "15px";
-        
-        const wrapper = document.getElementById('certWrapper');
-        canvas.style.display = 'none'; // ซ่อนตัววาด (เพราะเราจะใช้รูปภาพแทน)
-        
-        // ล้างรูปเก่า (ถ้ามี) แล้วใส่รูปใหม่เข้าไปแทนที่เหนือข้อความอธิบาย
-        const oldImg = wrapper.querySelector('img');
-        if(oldImg) oldImg.remove();
-        wrapper.insertBefore(finalImg, wrapper.querySelector('p'));
+            const dataURL = canvas.toDataURL("image/png");
+            const finalImg = new Image();
+            finalImg.src = dataURL;
+            finalImg.style.width = "100%";
+            finalImg.style.borderRadius = "15px";
+            
+            const wrapper = document.getElementById('certWrapper');
+            canvas.style.display = 'none'; 
+            
+            const oldImg = wrapper.querySelector('img');
+            if(oldImg) oldImg.remove();
+            wrapper.insertBefore(finalImg, wrapper.querySelector('p'));
 
-        // 2. แสดงส่วนใบประกาศ
-        wrapper.style.display = 'block';
-        
-        // 3. เลื่อนหน้าจอไปหาใบประกาศนิ่มๆ
-        wrapper.scrollIntoView({ behavior: 'smooth' });
-    };
-}
+            wrapper.style.display = 'block';
+            wrapper.scrollIntoView({ behavior: 'smooth' });
+        };
+    }
 
     function cancelVerify() {
         currentRunner = null; document.getElementById('scanBib').value = '';
