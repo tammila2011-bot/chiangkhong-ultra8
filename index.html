@@ -139,7 +139,7 @@
                         <input type="text" id="regBib" class="form-control text-center fw-bold bg-dark text-white border-secondary" placeholder="กรอกเลข BIB (เช่น A001, B005)" required>
                     </div>
                     <div class="mb-3">
-                        <label class="small text-warning fw-bold mb-1">ชื่อเรียก หรือ ชื่อเล่น</label>
+                        <label class="small text-warning fw-bold mb-1">ชื่อเรียก หรือ ชื่อทีม</label>
                         <input type="text" id="regName" class="form-control bg-dark text-white border-secondary" placeholder="กรอกชื่อเรียก หรือ ชื่อเล่น" required>
                     </div>
                     <div class="row g-2 mb-4">
@@ -488,7 +488,7 @@
         const modal = new bootstrap.Modal('#infoModal'), t = document.getElementById('infoTitle'), c = document.getElementById('infoContent'), i = document.getElementById('infoIcon');
         if(type==='sos'){ t.innerText="🆘 ฉุกเฉิน"; c.innerText="กู้ภัยบุญช่วย โทร: 089-632-5854"; i.className="bi bi-heart-pulse-fill text-danger"; }
         else if(type==='staff'){ t.innerText="👥 ทีมงาน"; c.innerText="หน้าเส้นชัย 083-2082280 , ภาคสนาม 090-8860909 "; i.className="bi bi-people-fill text-info"; }
-        else { t.innerText="📢 ข่าวสาร"; c.innerText="ยินดีต้อนรับสู่ระบบปฏิบัติการสถิติ Ultra 104 1.0 โปรดตั้งค่ามือถือให้แอป Chrome เป็นแอปเริ่มต้น ใช้กล้องกูเก้ลสแกน QR code และกดเปิดเสียงที่ช่องล่างขวามือ"; i.className="bi bi-megaphone-fill text-warning"; }
+        else { t.innerText="📢 ข่าวสาร"; c.innerText="ยินดีต้อนรับสู่ระบบปฏิบัติการสถิติ Ultra 104 1.0 โปรดตั้งค่ามือถือให้บราวเซอร์ Chrome เป็นแอปเริ่มต้น ใช้กล้องกูเก้ลสแกน QR code และกดเปิดเสียงที่ช่องล่างขวามือ"; i.className="bi bi-megaphone-fill text-warning"; }
         modal.show();
     }
 
