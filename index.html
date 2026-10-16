@@ -129,27 +129,41 @@
             </div> 
         </div>
 
+        <!-- Registration Tab -->
         <div class="tab-pane fade" id="tab-reg">
             <div class="card p-4">
                 <h5 class="fw-bold mb-4 text-primary text-center">สมัครนักวิ่งใหม่</h5>
                 <form id="regForm">
-                    <div class="mb-3"><label class="small text-muted">เลข BIB</label><input type="text" id="regBib" class="form-control text-center fw-bold" required></div>
-                    <div class="mb-3"><label class="small text-muted">ชื่อ-นามสกุล</label><input type="text" id="regName" class="form-control" required></div>
-                    <div class="row g-2 mb-4">
-                        <div class="col-6"><label class="small text-muted">เพศ</label><select id="regGender" class="form-select"><option value="M">ชาย</option><option value="F">หญิง</option></select></div>
-                        <div class="col-6"><label class="small text-muted">ประเภท</label><select id="regCategory" class="form-select">
-                            <option value="Solo">Solo (เดี่ยว)</option>
-                            <option value="Couple">ผลัด 2</option>
-                            <option value="Team3">ผลัด 3</option>
-                            <option value="Team10">ผลัด 10</option>
-                        </select></div>
+                    <div class="mb-3">
+                        <label class="small text-warning fw-bold mb-1">เลข BIB</label>
+                        <input type="text" id="regBib" class="form-control text-center fw-bold bg-dark text-white border-secondary" placeholder="กรอกเลข BIB (เช่น A001, B005)" required>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 fw-bold py-3">บันทึกข้อมูล</button>
+                    <div class="mb-3">
+                        <label class="small text-warning fw-bold mb-1">ชื่อเรียก หรือ ชื่อเล่น</label>
+                        <input type="text" id="regName" class="form-control bg-dark text-white border-secondary" placeholder="กรอกชื่อเรียก หรือ ชื่อเล่น" required>
+                    </div>
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <label class="small text-warning fw-bold mb-1">เพศ</label>
+                            <select id="regGender" class="form-select bg-dark text-white border-secondary">
+                                <option value="M">ชาย</option>
+                                <option value="F">หญิง</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-warning fw-bold mb-1">ประเภท</label>
+                            <select id="regCategory" class="form-select bg-dark text-white border-secondary">
+                                <option value="Solo">Solo (เดี่ยว)</option>
+                                <option value="Couple">ผลัด 2</option>
+                                <option value="Team3">ผลัด 3</option>
+                                <option value="Team10">ผลัด 10</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-3 shadow-sm rounded-3">บันทึกข้อมูลสมัคร</button>
                 </form>
             </div>
         </div>
-    </div>
-</div>
 
 <div class="bottom-dashboard"><div class="container"><div class="row text-center">
     <div class="col-3"><button class="btn-dash-sm" onclick="showMsg('news')"><i class="bi bi-megaphone"></i>ข่าวสาร</button></div>
