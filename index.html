@@ -334,33 +334,55 @@
                 });
             }
 
-            // 🎙️ 3. จัดการข้อความแจ้งเตือนป๊อบอัป และเสียงอ่าน AI ภาษาคน
             const parts = ps.split(":");
             const minStr = parseInt(parts[0]) || 0;
             const secStr = parseInt(parts[1]) || 0;
             const runnerName = currentRunner ? currentRunner.name : "";
 
-            let alertMsg = "";
-            let speakMsg = "";
+            // 🏆 3. เช็คว่าเป็นจุดเส้นชัย (กม. 104) หรือไม่
+            if (parseFloat(dist) >= 104) {
+                // ป๊อบอัปยิ่งใหญ่ระดับแชมเปี้ยน
+                alert(`🏆 ยินดีด้วยอย่างยิ่ง! คุณคือ FINISHER 104 KM!\nคุณ${runnerName} ทำสำเร็จแล้วครับ!`);
+                
+                // เสียง AI ประกาศชัยชนะแบบทรงพลัง
+                const finishVoiceMsg = `ขอแสดงความยินดีด้วยอย่างยิ่งค่ะ คุณ${runnerName}! คุณคือสุดยอด ฟินิชเชอร์ พิชิตระยะทาง 104 กิโลเมตร ใน อัลตร้า เชียงของ สำเร็จแล้วค่ะ! คุณทำได้ยอดเยี่ยมมากค่ะ!`;
+                speak(finishVoiceMsg);
 
-            if (cpCode === 'Start') {
-                alertMsg = `บันทึกจุดปล่อยตัวสำเร็จ!\n(ระบบบันทึกจุด CP1 บิ๊กซี ให้อัตโนมัติแล้ว)`;
-                speakMsg = `บันทึกจุดปล่อยตัวสำเร็จ คุณ${runnerName} ระบบบันทึกผ่านจุด ซีพี 1 ให้อัตโนมัติแล้ว สู้ๆ นะคะ`;
+                // สลับไปหน้าผลงานส่วนตัว
+                const meTabBtn = document.querySelector('button[data-bs-target="#tab-me"]');
+                if (meTabBtn) bootstrap.Tab.getOrCreateInstance(meTabBtn).show();
+                
+                document.getElementById('meBib').value = currentRunner.bib;
+                await loadMyResult();
+
+                // ✨ เสกสร้างใบประกาศนียบัตรขึ้นมาโชว์ทันทีอัตโนมัติ!
+                setTimeout(() => {
+                    generateCertificate();
+                }, 800);
+
             } else {
-                alertMsg = `บันทึกสำเร็จ! Pace: ${ps}`;
-                speakMsg = `บันทึกสำเร็จ คุณ${runnerName} ระยะ ${dist} กิโลเมตร เพซ ${minStr} นาที ${secStr} วินาที สู้ๆ นะคะ`;
-            }
+                // กรณีจุด CP ปกติ
+                let alertMsg = "";
+                let speakMsg = "";
 
-            alert(alertMsg);
-            speak(speakMsg);
+                if (cpCode === 'Start') {
+                    alertMsg = `บันทึกจุดปล่อยตัวสำเร็จ!\n(ระบบบันทึกจุด CP1 บิ๊กซี ให้อัตโนมัติแล้ว)`;
+                    speakMsg = `บันทึกจุดปล่อยตัวสำเร็จ คุณ${runnerName} ระบบบันทึกผ่านจุด ซีพี 1 ให้อัตโนมัติแล้ว สู้ๆ นะคะ`;
+                } else {
+                    alertMsg = `บันทึกสำเร็จ! Pace: ${ps}`;
+                    speakMsg = `บันทึกสำเร็จ คุณ${runnerName} ระยะ ${dist} กิโลเมตร เพซ ${minStr} นาที ${secStr} วินาที สู้ๆ นะคะ`;
+                }
 
-            // 🚀 4. สลับไปหน้า "ผลงานส่วนตัว" อัตโนมัติ และโหลดผลงานของนักวิ่งคนนี้ขึ้นมาโชว์
-            const meTabBtn = document.querySelector('button[data-bs-target="#tab-me"]');
-            if (meTabBtn) {
-                bootstrap.Tab.getOrCreateInstance(meTabBtn).show();
+                alert(alertMsg);
+                speak(speakMsg);
+
+                // สลับไปหน้าผลงานส่วนตัว
+                const meTabBtn = document.querySelector('button[data-bs-target="#tab-me"]');
+                if (meTabBtn) bootstrap.Tab.getOrCreateInstance(meTabBtn).show();
+                
+                document.getElementById('meBib').value = currentRunner.bib;
+                await loadMyResult();
             }
-            document.getElementById('meBib').value = currentRunner.bib;
-            await loadMyResult();
 
             cancelVerify();
         } catch(e) { 
