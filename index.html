@@ -231,27 +231,55 @@
     async function unlockCPButtons() {
         const hist = allData.filter(r => String(r[2]) === currentRunner.bib && r[1] === 'RUN');
         const maxD = hist.reduce((max, r) => Math.max(max, parseFloat(r[5]) || 0), -1);
+        
         document.getElementById('scanStep2').style.display = 'none';
-        const s3 = document.getElementById('scanStep3'); s3.style.display = 'block';
+        const s3 = document.getElementById('scanStep3'); 
+        s3.style.display = 'block';
         document.getElementById('activeRunnerName').innerText = currentRunner.name;
+        
         setTimeout(() => { s3.scrollIntoView({ behavior: 'smooth' }); }, 150);
 
         const dists = [0, 7, 56, 72, 89, 103, 104];
+        const cpLabels = [
+            "🚩 Start (กม.0)",
+            "📍 CP-1 (กม.7 - ผ่านเลี่ยงทางลอด)",
+            "📍 CP-2 (กม.56)",
+            "📍 CP-3 (กม.72)",
+            "📍 CP-4 (กม.89)",
+            "📍 CP-5 (กม.103)",
+            "🏁 Finish (กม.104)"
+        ];
+
         document.querySelectorAll('.btn-checkpoint').forEach((btn, i) => {
             btn.classList.remove('btn-pulse');
             if (dists[i] <= maxD) { 
                 btn.disabled = true; 
                 btn.style.opacity = "0.3"; 
-                if(i === 1) {
+                if (i === 1) {
                     btn.innerHTML = "✅ CP-1 (ผ่านอัตโนมัติ)";
                 } else {
-                    btn.innerHTML = "✅ " + (btn.innerText.includes(')') ? btn.innerText.split(') ')[1] : btn.innerText); 
+                    btn.innerHTML = "✅ " + cpLabels[i]; // ✨ แก้ไขปัญหา undefined
                 }
             }
-            else if (i > 0 && dists[i-1] > maxD) { btn.disabled = true; btn.style.opacity = "0.1"; }
-            else { btn.disabled = false; btn.style.opacity = "1"; btn.classList.add('btn-pulse'); }
+            else if (i > 0 && dists[i-1] > maxD) { 
+                btn.disabled = true; 
+                btn.style.opacity = "0.1"; 
+                btn.innerHTML = cpLabels[i];
+            }
+            else { 
+                btn.disabled = false; 
+                btn.style.opacity = "1"; 
+                btn.innerHTML = cpLabels[i];
+                btn.classList.add('btn-pulse'); 
+            }
         });
-        speak(`กรุณาสแกนจุดต่อไปนะคะ`);
+
+        // 🎙️ เช็คว่าถ้าเข้าเส้นชัยแล้ว (ระยะ >= 104) ให้พูดเปลี่ยนข้อความยินดีแทน
+        if (maxD >= 104) {
+            speak(`ยินดีด้วยค่ะคุณ ${currentRunner.name} คุณเข้าเส้นชัยสำเร็จแล้วค่ะ`);
+        } else {
+            speak(`กรุณาสแกนจุดต่อไปนะคะ`);
+        }
     }
 
     async function scanCP(targetCP, dist) {
