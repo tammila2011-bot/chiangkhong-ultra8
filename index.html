@@ -310,14 +310,14 @@
         }
 
         try {
-            // บันทึกจุดปัจจุบัน
+            // 1. บันทึกจุดปัจจุบันลง Google Sheet
             await fetch(SCRIPT_URL, { 
                 method: 'POST', 
                 mode: 'no-cors', 
                 body: JSON.stringify({ action: 'record', bib: currentRunner.bib, end: cpCode, distance: dist, pace: "'" + ps }) 
             });
 
-            // 🚩 กรณีสแกน Start (กม.0) -> ทำการอัปเดตบันทึกจุด CP1 (กม.7) ให้อัตโนมัติทันที
+            // 2. กรณีสแกน Start (กม.0) -> บันทึกจุด CP1 (กม.7) ให้อัตโนมัติ
             if (cpCode === 'Start') {
                 let cp1Pace = "0:00";
                 if (7 > 0) {
@@ -334,24 +334,38 @@
                 });
             }
 
-            // 🎙️ จัดการเสียงอ่าน AI
+            // 🎙️ 3. จัดการข้อความแจ้งเตือนป๊อบอัป และเสียงอ่าน AI ภาษาคน
             const parts = ps.split(":");
+            const minStr = parseInt(parts[0]) || 0;
+            const secStr = parseInt(parts[1]) || 0;
+            const runnerName = currentRunner ? currentRunner.name : "";
+
+            let alertMsg = "";
             let speakMsg = "";
+
             if (cpCode === 'Start') {
-                speakMsg = `บันทึกจุดปล่อยตัวสำเร็จ ระบบบันทึกผ่านจุด ซีพี 1 บิ๊กซี ให้อัตโนมัติแล้วค่ะ สู้ๆ นะคะ`;
-                alert(`บันทึกจุดปล่อยตัวสำเร็จ!\n(ระบบผ่านจุด CP1 บิ๊กซี ให้อัตโนมัติแล้ว)`);
+                alertMsg = `บันทึกจุดปล่อยตัวสำเร็จ!\n(ระบบบันทึกจุด CP1 บิ๊กซี ให้อัตโนมัติแล้ว)`;
+                speakMsg = `บันทึกจุดปล่อยตัวสำเร็จ คุณ${runnerName} ระบบบันทึกผ่านจุด ซีพี 1 ให้อัตโนมัติแล้ว สู้ๆ นะคะ`;
             } else {
-                speakMsg = `บันทึกสำเร็จ ระยะ ${dist} กม. เพซ ${parseInt(parts[0])} นาที ${parseInt(parts[1])} วินาที ค่ะ`;
-                alert(`บันทึกสำเร็จ! Pace: ${ps}`);
+                alertMsg = `บันทึกสำเร็จ! Pace: ${ps}`;
+                speakMsg = `บันทึกสำเร็จ คุณ${runnerName} ระยะ ${dist} กิโลเมตร เพซ ${minStr} นาที ${secStr} วินาที สู้ๆ นะคะ`;
             }
-            speak(speakMsg); 
-            
-            if (dist >= 104) {
-                bootstrap.Tab.getOrCreateInstance(document.querySelector('button[data-bs-target="#tab-me"]')).show();
-                document.getElementById('meBib').value = currentRunner.bib; loadMyResult();
+
+            alert(alertMsg);
+            speak(speakMsg);
+
+            // 🚀 4. สลับไปหน้า "ผลงานส่วนตัว" อัตโนมัติ และโหลดผลงานของนักวิ่งคนนี้ขึ้นมาโชว์
+            const meTabBtn = document.querySelector('button[data-bs-target="#tab-me"]');
+            if (meTabBtn) {
+                bootstrap.Tab.getOrCreateInstance(meTabBtn).show();
             }
+            document.getElementById('meBib').value = currentRunner.bib;
+            await loadMyResult();
+
             cancelVerify();
-        } catch(e) { alert("ล้มเหลว"); }
+        } catch(e) { 
+            alert("บันทึกล้มเหลว"); 
+        }
         showLoading(false);
     }
 
