@@ -63,7 +63,7 @@
                     <span class="badge bg-secondary mb-3 fs-6" id="confirmBibDisplay">BIB: ---</span>
                     <div id="runnerHistoryScan" class="text-start mb-4"></div>
                     <div class="d-grid gap-3">
-                        <button class="btn btn-success btn-lg fw-bold py-3 rounded-4" onclick="unlockCPButtons()">✅ ยืนยันข้อมูลถูกต้อง</button>
+                        <button class="btn btn-success btn-lg fw-bold py-3 rounded-4" onclick="unlockCPButtons()">✅ กดยืนยันข้อมูลถูกต้อง</button>
                         <button class="btn btn-outline-danger btn-sm border-0" onclick="cancelVerify()">❌ ยกเลิก</button>
                     </div>
                 </div>
@@ -126,7 +126,7 @@
                     <canvas id="certCanvas" style="width: 100%; max-width: 600px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid #FFD700;"></canvas>
                     
                     <p class="text-white-50 small mt-3">💡 กดค้างที่รูปเพื่อ "บันทึกรูปภาพ" ลงมือถือ</p>
-                    <button onclick="location.reload()" class="btn btn-outline-light btn-sm mt-2">🔄 กลับไปหน้าสถิติ</button>
+                    <button onclick="location.reload()" class="btn btn-outline-light btn-sm mt-2">🔄 กลับไปหน้าหลัก</button>
                 </div>
             </div> 
         </div>
@@ -150,6 +150,7 @@
                             <select id="regGender" class="form-select bg-dark text-white border-secondary">
                                 <option value="M">ชาย</option>
                                 <option value="F">หญิง</option>
+                                <option value="T">ทีม</option>
                             </select>
                         </div>
                         <div class="col-6">
@@ -185,7 +186,7 @@
 
     function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
     function speak(text) { if (!window.speechSynthesis) return; window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.lang = 'th-TH'; msg.rate = 1.0; window.speechSynthesis.speak(msg); }
-    function unlockVoice() { speak("ระบบเสียง อัลตร้า 104 พร้อมดูแลคุณค่ะ"); }
+    function unlockVoice() { speak("ระบบเสียง อัลตร้า 104 พร้อมดูแลคุณ ไปด้วยกันนะค่ะ"); }
     function toggleMusic() {
         const audio = document.getElementById('bgMusic'), icon = document.getElementById('playIcon');
         if (audio.paused) { audio.play(); icon.className = "bi bi-pause-fill"; } else { audio.pause(); icon.className = "bi bi-play-fill"; }
@@ -274,7 +275,7 @@
         });
 
         if (maxD >= 104) {
-            speak(`ยินดีด้วยค่ะคุณ ${currentRunner.name} คุณเข้าเส้นชัยสำเร็จแล้วค่ะ`);
+            speak(`ยินดีด้วยค่ะคุณ ${currentRunner.name} คุณเข้าเส้นชัยสำเร็จแล้ว เก่งมากค่ะ`);
         } else {
             speak(`กรุณาสแกนจุดต่อไปนะคะ`);
         }
