@@ -40,6 +40,8 @@
     <div class="text-center mb-3">
         <button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="toggleMusic()">🎵 104 Song <i id="playIcon" class="bi bi-play-fill"></i></button>
         <audio id="bgMusic" src="104 song.mp3" loop></audio>
+        <!-- 🎵 แท็กเสียงเพลง 104 Eng สำหรับหน้าผลงานส่วนตัว -->
+        <audio id="engMusic" src="104 Eng.aac.mp3" loop></audio>
     </div>
 
     <ul class="nav nav-pills nav-fill mb-3 bg-dark p-1 rounded-pill shadow">
@@ -113,7 +115,8 @@
 
                 <div id="certArea" style="display:none;" class="mt-3">
                     <hr class="border-secondary my-4">
-                    <h4 class="text-white fw-bold mb-3">🏆 FINISHER 104 KM!</h4>
+                    <h4 class="text-white fw-bold mb-1">🏆 CERTIFICATE OF ACHIEVEMENT</h4>
+                    <p class="text-warning small mb-3">ใบประกาศเกียรติยศแสดงระยะทางที่คุณพิชิตได้</p>
                     <button onclick="generateCertificate()" class="btn btn-warning w-100 fw-bold py-3 shadow-sm" style="border-radius: 15px;">
                         🏅 รับใบเกียรติบัตรออนไลน์
                     </button>
@@ -431,6 +434,14 @@
         const bib = document.getElementById('meBib').value.trim();
         if(!bib) return;
         showLoading(true);
+
+        // 🎵 เปิดเพลง 104 Eng คลอเบาๆ เมื่อโหลดข้อมูลสถิติสำเร็จ
+        const engAudio = document.getElementById('engMusic');
+        if (engAudio) {
+            engAudio.volume = 0.4;
+            engAudio.play().catch(e => {});
+        }
+
         try {
             const res = await fetch(SCRIPT_URL); allData = await res.json();
             const hist = allData.filter(r => String(r[2]) === bib && r[1] === 'RUN');
@@ -441,7 +452,10 @@
             else {
                 const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
                 currentRunner = { bib: bib, name: info[3], cat: info[8], gender: info[7] };
-                if (maxD >= 104) document.getElementById('certArea').style.display = 'block';
+                
+                // 🎯 เปิดปุ่มรับใบเกียรติบัตรให้กับทุกคนที่มีระยะทาง > 0 กม.
+                if (maxD > 0) document.getElementById('certArea').style.display = 'block';
+
                 let html = `<div class="p-3 bg-dark rounded-4 text-center border border-primary mb-3 shadow"><h4>${info[3]}</h4><h2 class="text-warning">${maxD.toFixed(1)} กม.</h2></div>`;
                 hist.sort((a,b) => b[5] - a[5]).forEach(h => {
                     const thTime = new Date(h[0]).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
@@ -462,7 +476,7 @@
         showLoading(false);
     }
 
-    // 🏆 ฟังก์ชันสร้างใบเกียรติบัตร + พลุฉลองชัย + เสียง AI สรรเสริญ
+    // 🏆 ฟังก์ชันสร้างใบเกียรติบัตร (ยืดหยุ่นตามระยะจริง) + พลุฉลองชัย + เสียง AI สรรเสริญ
     async function generateCertificate() {
         const meBib = document.getElementById('meBib').value.trim();
         if(!meBib) return;
@@ -470,7 +484,6 @@
         showLoading(true);
 
         try {
-            // ดึงข้อมูลอัปเดตล่าสุด
             const res = await fetch(SCRIPT_URL); 
             allData = await res.json();
 
@@ -487,17 +500,22 @@
             const runnerCat = info[8] || "Solo";
             const runnerGender = info[7] || "M";
 
-            // --- 1. คำนวณเวลารวม (จาก Start ถึง Finish) ---
+            // 🎯 ระยะทางสูงสุดที่ทำได้จริง ณ จุดสแกนล่าสุด
+            const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
+
+            // --- 1. คำนวณเวลารวม (จาก Start ถึงจุดสแกนล่าสุด) ---
             const startRow = hist.find(h => h[7] === 'Start' || h[5] == 0);
-            const finishRow = hist.find(h => h[7] === 'CP6' || h[5] >= 104);
+            
+            hist.sort((a,b) => parseFloat(b[5]) - parseFloat(a[5]));
+            const lastRow = hist[0];
 
             let totalHours = 0, totalMins = 0, totalSecs = 0;
-            let timeStr = "12:00:00";
+            let timeStr = "00:00:00";
 
-            if (startRow && finishRow) {
+            if (startRow && lastRow) {
                 const tStart = new Date(startRow[0]).getTime();
-                const tFinish = new Date(finishRow[0]).getTime();
-                let diff = Math.max(0, tFinish - tStart);
+                const tLast = new Date(lastRow[0]).getTime();
+                let diff = Math.max(0, tLast - tStart);
 
                 totalHours = Math.floor(diff / (1000 * 60 * 60));
                 diff %= (1000 * 60 * 60);
@@ -521,7 +539,6 @@
                 }
             });
 
-            // กรองกลุ่มประเภทเดียวกับนักวิ่งคนนี้
             const sameCategoryRunners = Object.values(summary).filter(r => {
                 if (runnerCat === 'Solo') {
                     return r.cat === 'Solo' && r.gender === runnerGender;
@@ -533,10 +550,10 @@
             const rankNum = myRankIndex !== -1 ? (myRankIndex + 1) : 1;
             const rankStr = `Rank ${rankNum}`;
 
-            // --- 3. คำนวณ Pace เฉลี่ย ---
-            let avgPaceStr = "7:30";
-            if (finishRow && finishRow[10] && finishRow[10] !== '-') {
-                avgPaceStr = String(finishRow[10]).replace("'", "");
+            // --- 3. คำนวณ Pace เฉลี่ย/ล่าสุด ---
+            let avgPaceStr = "0:00";
+            if (lastRow && lastRow[10] && lastRow[10] !== '-') {
+                avgPaceStr = String(lastRow[10]).replace("'", "");
             }
 
             // --- 4. วาดภาพ Canvas ลงบนใบเกียรติบัตร ---
@@ -557,13 +574,15 @@
                 // พิกัดจูนตำแหน่งข้อความบนภาพ
                 ctx.fillText(meBib, 260, 440);          // BIB
                 ctx.fillText(runnerName, 550, 440);     // ชื่อนักวิ่ง
-                ctx.fillText(runnerCat.toUpperCase(), 1550, 440); // ประเภท
+                
+                // 🚩 แสดงประเภท + ระยะทางจริงที่พิชิตได้ (เช่น SOLO (56.0 KM))
+                const catWithDist = `${runnerCat.toUpperCase()} (${maxD.toFixed(1)} KM)`;
+                ctx.fillText(catWithDist, 1450, 440);
 
                 ctx.fillText(rankStr, 160, 600);        // ลำดับ
                 ctx.fillText(`Time ${timeStr}`, 650, 600);  // เวลารวม
                 ctx.fillText(`Pace ${avgPaceStr}`, 1400, 600); // Pace
 
-                // แปลงเป็นรูปภาพเพื่อสะดวกลูกค้าเซฟลงมือถือ
                 const dataURL = canvas.toDataURL("image/png");
                 const finalImg = new Image();
                 finalImg.src = dataURL;
@@ -587,17 +606,13 @@
                     setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 } }), 400);
                 }
 
-                // 🎵 6. เล่นเพลง 104 Song คลอเบาๆ
-                const audio = document.getElementById('bgMusic');
-                if (audio) {
-                    audio.volume = 0.3; // เปิดคลอเบาๆ
-                    audio.play().catch(()=>{});
-                    const icon = document.getElementById('playIcon');
-                    if(icon) icon.className = "bi bi-pause-fill";
+                // 🎙️ 6. เสียง AI ประกาศฉลองชัยตามระยะทางจริง
+                let speakMsg = "";
+                if (maxD >= 104) {
+                    speakMsg = `ยินดีกับความสำเร็จ ChiangKhong Ultra Marathon ของคุณ${runnerName} คุณวิ่งได้ 104 กิโลเมตร เวลา ${totalHours} ชั่วโมง ${totalMins} นาที ${totalSecs} วินาที ได้ลำดับที่ ${rankNum} คุณ${runnerName} คุณเก่งมากค่ะ`;
+                } else {
+                    speakMsg = `ขอแสดงความยินดีกับความทุ่มเทใน ChiangKhong Ultra Marathon ของคุณ${runnerName} คุณวิ่งได้ระยะทาง ${maxD.toFixed(0)} กิโลเมตร เวลา ${totalHours} ชั่วโมง ${totalMins} นาที ได้ลำดับที่ ${rankNum} คุณ${runnerName} คุณเก่งมากค่ะ`;
                 }
-
-                // 🎙️ 7. เสียง AI ประกาศฉลองชัย
-                const speakMsg = `ยินดีกับความสำเร็จ ChiangKhong Ultra Marathon ของคุณ${runnerName} คุณวิ่งได้ 104 กิโลเมตร เวลา ${totalHours} ชั่วโมง ${totalMins} นาที ${totalSecs} วินาที ได้ลำดับที่ ${rankNum} คุณ${runnerName} คุณเก่งมากค่ะ`;
                 
                 setTimeout(() => {
                     speak(speakMsg);
@@ -645,6 +660,28 @@
                 alert("สมัครสำเร็จ!"); location.reload();
             } catch(e) {}
             showLoading(false);
+        });
+
+        // 🎵 ฟังก์ชันควบคุมเพลง 104 Eng เมื่อเข้า-ออกจากหน้าผลงานส่วนตัว
+        const engAudio = document.getElementById('engMusic');
+        const tabButtons = document.querySelectorAll('button[data-bs-toggle="pill"]');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('shown.bs.tab', (event) => {
+                const targetTab = event.target.getAttribute('data-bs-target');
+
+                if (targetTab === '#tab-me') {
+                    if (engAudio) {
+                        engAudio.volume = 0.4; // ความดัง 40%
+                        engAudio.play().catch(e => {});
+                    }
+                } else {
+                    if (engAudio) {
+                        engAudio.pause();
+                        engAudio.currentTime = 0;
+                    }
+                }
+            });
         });
     });
 </script>
