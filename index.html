@@ -649,18 +649,61 @@
         modal.show();
     }
 
-    window.addEventListener('load', () => {
-        document.getElementById('regForm').addEventListener('submit', async (e) => {
-            e.preventDefault(); showLoading(true);
-            const name = document.getElementById('regName').value, bib = document.getElementById('regBib').value;
-            const data = { action: 'register', bib: bib, name: name, gender: document.getElementById('regGender').value, category: document.getElementById('regCategory').value };
-            try {
-                await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-                speak(`ลงทะเบียนสำเร็จแล้วค่ะ คุณ ${name} บิบ ${bib} สแกนจุดสตาร์ทได้เลยค่ะ`);
-                alert("สมัครสำเร็จ!"); location.reload();
-            } catch(e) {}
-            showLoading(false);
-        });
+    // ✅ โค้ดใหม่ (มีระบบเช็ค BIB ซ้ำก่อนลงทะเบียน):
+window.addEventListener('load', () => {
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        showLoading(true);
+
+        const bib = document.getElementById('regBib').value.trim();
+        const name = document.getElementById('regName').value.trim();
+        const gender = document.getElementById('regGender').value;
+        const category = document.getElementById('regCategory').value;
+
+        try {
+            // 1. ดึงข้อมูลล่าสุดจาก Google Sheet มาตรวจสอบก่อน
+            const res = await fetch(SCRIPT_URL);
+            allData = await res.json();
+
+            // 2. เช็คว่ามี BIB นี้ในสถานะ 'REG' อยู่แล้วหรือไม่ (เทียบแบบไม่สนอักษรเล็ก/ใหญ่)
+            const isDuplicate = allData.some(r => r[1] === 'REG' && String(r[2]).trim().toUpperCase() === bib.toUpperCase());
+
+            if (isDuplicate) {
+                // 🚫 หากพบ BIB ซ้ำ ให้แจ้งเตือนและยกเลิกการบันทึก
+                const dupRunner = allData.find(r => r[1] === 'REG' && String(r[2]).trim().toUpperCase() === bib.toUpperCase());
+                const dupName = dupRunner ? dupRunner[3] : "";
+
+                alert(`⚠️ เลข BIB ${bib} นี้ถูกลงทะเบียนไปแล้ว!\n(ชื่อ: ${dupName})`);
+                speak(`เลขบิบ ${bib} นี้ถูกลงทะเบียนไปแล้วค่ะ กรุณาตรวจสอบเลขบิบอีกครั้งค่ะ`);
+                showLoading(false);
+                return; // หยุดการทำงาน ไม่ส่งข้อมูลลงฐานข้อมูล
+            }
+
+            // 3. หากยังไม่มี BIB นี้ ให้ส่งข้อมูลลงทะเบียนตามปกติ
+            const data = { 
+                action: 'register', 
+                bib: bib, 
+                name: name, 
+                gender: gender, 
+                category: category 
+            };
+
+            await fetch(SCRIPT_URL, { 
+                method: 'POST', 
+                mode: 'no-cors', 
+                body: JSON.stringify(data) 
+            });
+
+            speak(`ลงทะเบียนสำเร็จแล้วค่ะ คุณ ${name} บิบ ${bib} สแกนจุดสตาร์ทได้เลยค่ะ`);
+            alert("สมัครสำเร็จ!"); 
+            location.reload();
+
+        } catch(e) {
+            alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
+        }
+        showLoading(false);
+    });
+});
 
         // 🎵 ฟังก์ชันควบคุมเพลง 104 Eng เมื่อเข้า-ออกจากหน้าผลงานส่วนตัว
         const engAudio = document.getElementById('engMusic');
