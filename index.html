@@ -462,36 +462,53 @@
                 document.getElementById('meContent').innerHTML = '<p class="text-center text-white-50">ไม่พบข้อมูล BIB นี้</p>'; 
             } else {
                 const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
-                currentRunner = { bib: bib, name: info[3], cat: info[8], gender: info[7] };
+                
+                // 🎯 ดึงเพศ และ ประเภท จากคอลัมน์ใน Sheet ให้ถูกต้องรัดกุม (รองรับทั้ง Index 7, 8, 9)
+                const runnerCat = info[8] || "Solo";
+                const runnerGender = info[9] || info[7] || "M";
+                currentRunner = { bib: bib, name: info[3], cat: runnerCat, gender: runnerGender };
                 
                 if (maxD > 0) document.getElementById('certArea').style.display = 'block';
 
-                // 🏆 คำนวณอันดับ Live Ranking ปัจจุบันในรุ่นเดียวกัน
+                // 🏆 1. คำนวณอันดับ Live Ranking (แยก Solo-M / Solo-F / ทีม ชัดเจน)
                 const summary = {};
                 allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
                     const b = String(r[2]).trim();
                     const d = parseFloat(r[5]) || 0;
                     const reg = allData.find(rg => rg[1] === 'REG' && String(rg[2]).trim() === b);
                     if (reg) {
+                        const rCat = reg[8] || "Solo";
+                        const rGender = reg[9] || reg[7] || "M";
                         if (!summary[b] || d > summary[b].dist) {
-                            summary[b] = { bib: b, dist: d, cat: reg[8], gender: reg[7] };
+                            summary[b] = { bib: b, dist: d, cat: rCat, gender: rGender };
                         }
                     }
                 });
 
+                // กรองเฉพาะนักวิ่งที่อยู่ในประเภทและเพศเดียวกัน
                 const sameCategoryRunners = Object.values(summary).filter(r => {
-                    if (info[8] === 'Solo') return r.cat === 'Solo' && r.gender === info[7];
-                    return r.cat === info[8];
+                    if (runnerCat === 'Solo') {
+                        return r.cat === 'Solo' && r.gender.toUpperCase() === runnerGender.toUpperCase();
+                    }
+                    return r.cat === runnerCat;
                 }).sort((a,b) => b.dist - a.dist);
 
                 const myRankIndex = sameCategoryRunners.findIndex(r => r.bib === bib);
                 const currentRank = (myRankIndex !== -1 && maxD > 0) ? (myRankIndex + 1) : "-";
 
+                // ข้อความแสดงประเภทและเพศ
+                let genderLabel = "";
+                if (runnerCat === 'Solo') {
+                    genderLabel = (runnerGender.toUpperCase() === 'F') ? "Solo (หญิง)" : "Solo (ชาย)";
+                } else {
+                    genderLabel = `${runnerCat}`;
+                }
+
                 // 🎯 เช็คว่าระยะทางเท่ากับหรือมากกว่า 104 กม. หรือไม่
                 const is104Finish = maxD >= 104;
                 const numClass = is104Finish ? "text-warning celebrate-104 fw-bold display-4" : "text-warning fw-bold display-5";
 
-                // 🎨 การ์ดสรุปผลงานใหม่ (มีชื่อนักวิ่ง + อันดับสด Live Ranking)
+                // 🎨 การ์ดสรุปผลงานปรับปรุงใหม่ (แยกอันดับตามเพศแม่นยำ)
                 let html = `
                 <div class="p-3 bg-dark rounded-4 text-center border border-warning mb-3 shadow position-relative overflow-hidden" style="background: linear-gradient(145deg, #111111, #221c10);">
                     <div class="d-flex justify-content-between align-items-center mb-1 px-2">
@@ -499,7 +516,7 @@
                         <span class="badge bg-outline-warning border border-warning text-warning px-3 py-2 rounded-pill fs-6">🏆 อันดับที่ ${currentRank}</span>
                     </div>
                     <h3 class="fw-bold text-white mt-2 mb-0">${info[3]}</h3>
-                    <small class="text-white-50">ประเภท: ${info[8]}-${info[7]}</small>
+                    <small class="text-warning opacity-75">ประเภท: ${genderLabel}</small>
                     <div class="my-3">
                         <h1 class="${numClass} m-0">${maxD.toFixed(1)} กม.</h1>
                     </div>
