@@ -563,6 +563,7 @@
         showLoading(false);
     }
 
+    // 🏆 ฟังก์ชันสร้างใบเกียรติบัตร (แยกอันดับ Solo ตามเพศ M/F แม่นยำตรงกับการ์ดผลงาน)
     async function generateCertificate() {
         const meBib = document.getElementById('meBib').value.trim();
         if(!meBib) return;
@@ -584,10 +585,12 @@
 
             const runnerName = info[3] || "นักวิ่ง";
             const runnerCat = info[8] || "Solo";
-            const runnerGender = info[7] || "M";
+            const runnerGender = (info[9] || info[7] || "M").toUpperCase(); // ดึงค่าเพศรัดกุม
 
+            // 🎯 ระยะทางสูงสุดที่ทำได้จริง ณ จุดสแกนล่าสุด
             const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
 
+            // --- 1. คำนวณเวลารวม ---
             const startRow = hist.find(h => h[7] === 'Start' || h[5] == 0);
             
             hist.sort((a,b) => parseFloat(b[5]) - parseFloat(a[5]));
@@ -610,18 +613,22 @@
                 timeStr = `${String(totalHours).padStart(2, '0')}:${String(totalMins).padStart(2, '0')}:${String(totalSecs).padStart(2, '0')}`;
             }
 
+            // --- 2. คำนวณลำดับ Rank แยกตามประเภทและเพศ (Solo-M / Solo-F) ---
             const summary = {};
             allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
                 const b = String(r[2]).trim();
                 const d = parseFloat(r[5]) || 0;
                 const reg = allData.find(rg => rg[1] === 'REG' && String(rg[2]).trim() === b);
                 if (reg) {
+                    const rCat = reg[8] || "Solo";
+                    const rGender = (reg[9] || reg[7] || "M").toUpperCase();
                     if (!summary[b] || d > summary[b].dist) {
-                        summary[b] = { bib: b, dist: d, cat: reg[8], gender: reg[7] };
+                        summary[b] = { bib: b, dist: d, cat: rCat, gender: rGender };
                     }
                 }
             });
 
+            // กรองกลุ่มเดียวกันเป๊ะๆ (Solo ต้องเช็คเพศตรงกัน)
             const sameCategoryRunners = Object.values(summary).filter(r => {
                 if (runnerCat === 'Solo') {
                     return r.cat === 'Solo' && r.gender === runnerGender;
@@ -630,14 +637,16 @@
             }).sort((a,b) => b.dist - a.dist);
 
             const myRankIndex = sameCategoryRunners.findIndex(r => r.bib === meBib);
-            const rankNum = myRankIndex !== -1 ? (myRankIndex + 1) : 1;
+            const rankNum = (myRankIndex !== -1 && maxD > 0) ? (myRankIndex + 1) : 1;
             const rankStr = `Rank ${rankNum}`;
 
+            // --- 3. คำนวณ Pace เฉลี่ย/ล่าสุด ---
             let avgPaceStr = "0:00";
             if (lastRow && lastRow[10] && lastRow[10] !== '-') {
                 avgPaceStr = String(lastRow[10]).replace("'", "");
             }
 
+            // --- 4. วาดภาพ Canvas ลงบนใบเกียรติบัตร ---
             const canvas = document.getElementById('certCanvas');
             const ctx = canvas.getContext('2d');
             const img = new Image();
@@ -652,15 +661,21 @@
                 ctx.textAlign = "left";
                 ctx.font = "bold 90px Prompt, sans-serif";
 
-                ctx.fillText(meBib, 260, 440);          
-                ctx.fillText(runnerName, 550, 440);     
+                // พิกัดจูนตำแหน่งข้อความบนภาพ
+                ctx.fillText(meBib, 260, 440);          // BIB
+                ctx.fillText(runnerName, 550, 440);     // ชื่อนักวิ่ง
                 
-                const catWithDist = `${runnerCat.toUpperCase()} (${maxD.toFixed(1)} KM)`;
+                // 🚩 แสดงประเภทแยกเพศ + ระยะทางจริง (เช่น SOLO-M (7.0 KM) หรือ SOLO-F (7.0 KM))
+                let catLabel = runnerCat.toUpperCase();
+                if (runnerCat === 'Solo') {
+                    catLabel = (runnerGender === 'F') ? "SOLO-F" : "SOLO-M";
+                }
+                const catWithDist = `${catLabel} (${maxD.toFixed(1)} KM)`;
                 ctx.fillText(catWithDist, 1450, 440);
 
-                ctx.fillText(rankStr, 160, 600);        
-                ctx.fillText(`Time ${timeStr}`, 650, 600);  
-                ctx.fillText(`Pace ${avgPaceStr}`, 1400, 600); 
+                ctx.fillText(rankStr, 160, 600);        // ลำดับ Rank (ตรงกับการ์ดสรุปเป๊ะ)
+                ctx.fillText(`Time ${timeStr}`, 650, 600);  // เวลารวม
+                ctx.fillText(`Pace ${avgPaceStr}`, 1400, 600); // Pace
 
                 const dataURL = canvas.toDataURL("image/png");
                 const finalImg = new Image();
@@ -678,12 +693,14 @@
                 wrapper.style.display = 'block';
                 wrapper.scrollIntoView({ behavior: 'smooth' });
 
+                // 🎆 5. ยิงพลุฉลองชัย
                 if (typeof confetti === 'function') {
                     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                     setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 } }), 250);
                     setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 } }), 400);
                 }
 
+                // 🎙️ 6. เสียง AI ประกาศฉลองชัย
                 let speakMsg = "";
                 if (maxD >= 104) {
                     speakMsg = `ยินดีกับความสำเร็จ ChiangKhong Ultra Marathon ของคุณ${runnerName} คุณวิ่งได้ 104 กิโลเมตร เวลา ${totalHours} ชั่วโมง ${totalMins} นาที ${totalSecs} วินาที ได้ลำดับที่ ${rankNum} คุณ${runnerName} คุณเก่งมากค่ะ`;
