@@ -457,21 +457,53 @@
             const info = allData.find(r => String(r[2]) === bib && r[1] === 'REG');
             document.getElementById('certArea').style.display = 'none';
             document.getElementById('certWrapper').style.display = 'none';
-            if(!info) { document.getElementById('meContent').innerHTML = '<p class="text-center">ไม่พบข้อมูล</p>'; }
-            else {
+            
+            if(!info) { 
+                document.getElementById('meContent').innerHTML = '<p class="text-center text-white-50">ไม่พบข้อมูล BIB นี้</p>'; 
+            } else {
                 const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
                 currentRunner = { bib: bib, name: info[3], cat: info[8], gender: info[7] };
                 
                 if (maxD > 0) document.getElementById('certArea').style.display = 'block';
 
+                // 🏆 คำนวณอันดับ Live Ranking ปัจจุบันในรุ่นเดียวกัน
+                const summary = {};
+                allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
+                    const b = String(r[2]).trim();
+                    const d = parseFloat(r[5]) || 0;
+                    const reg = allData.find(rg => rg[1] === 'REG' && String(rg[2]).trim() === b);
+                    if (reg) {
+                        if (!summary[b] || d > summary[b].dist) {
+                            summary[b] = { bib: b, dist: d, cat: reg[8], gender: reg[7] };
+                        }
+                    }
+                });
+
+                const sameCategoryRunners = Object.values(summary).filter(r => {
+                    if (info[8] === 'Solo') return r.cat === 'Solo' && r.gender === info[7];
+                    return r.cat === info[8];
+                }).sort((a,b) => b.dist - a.dist);
+
+                const myRankIndex = sameCategoryRunners.findIndex(r => r.bib === bib);
+                const currentRank = (myRankIndex !== -1 && maxD > 0) ? (myRankIndex + 1) : "-";
+
                 // 🎯 เช็คว่าระยะทางเท่ากับหรือมากกว่า 104 กม. หรือไม่
                 const is104Finish = maxD >= 104;
-                const numClass = is104Finish ? "text-warning celebrate-104 fw-bold display-4" : "text-warning";
+                const numClass = is104Finish ? "text-warning celebrate-104 fw-bold display-4" : "text-warning fw-bold display-5";
 
-                let html = `<div class="p-3 bg-dark rounded-4 text-center border border-primary mb-3 shadow">
-                                <h4>${info[3]}</h4>
-                                <h2 class="${numClass} my-2">${maxD.toFixed(1)} กม.</h2>
-                            </div>`;
+                // 🎨 การ์ดสรุปผลงานใหม่ (มีชื่อนักวิ่ง + อันดับสด Live Ranking)
+                let html = `
+                <div class="p-3 bg-dark rounded-4 text-center border border-warning mb-3 shadow position-relative overflow-hidden" style="background: linear-gradient(145deg, #111111, #221c10);">
+                    <div class="d-flex justify-content-between align-items-center mb-1 px-2">
+                        <span class="badge bg-warning text-dark font-monospace fw-bold px-3 py-2 rounded-pill fs-6">BIB: ${bib}</span>
+                        <span class="badge bg-outline-warning border border-warning text-warning px-3 py-2 rounded-pill fs-6">🏆 อันดับที่ ${currentRank}</span>
+                    </div>
+                    <h3 class="fw-bold text-white mt-2 mb-0">${info[3]}</h3>
+                    <small class="text-white-50">ประเภท: ${info[8]}-${info[7]}</small>
+                    <div class="my-3">
+                        <h1 class="${numClass} m-0">${maxD.toFixed(1)} กม.</h1>
+                    </div>
+                </div>`;
                 
                 hist.sort((a,b) => b[5] - a[5]).forEach(h => {
                     const thTime = new Date(h[0]).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
@@ -488,16 +520,14 @@
                 });
                 document.getElementById('meContent').innerHTML = html;
 
-                // 🎆 🎉 ถ้าวิ่งครบ 104 กม. ยิงพลุ + ประกาศเสียงตื่นเต้นตื้นตันใจ!
+                // 🎆 🎉 ถ้าวิ่งครบ 104 กม. ยิงพลุ + ประกาศเสียงตื่นเต้น!
                 if (is104Finish) {
-                    // 1. พลุฉลองชัย
                     if (typeof confetti === 'function') {
                         confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
                         setTimeout(() => confetti({ particleCount: 70, angle: 60, spread: 60, origin: { x: 0 } }), 300);
                         setTimeout(() => confetti({ particleCount: 70, angle: 120, spread: 60, origin: { x: 1 } }), 500);
                     }
 
-                    // 2. คำนวณเวลารวม และ ลำดับ Rank
                     const startRow = hist.find(h => h[7] === 'Start' || h[5] == 0);
                     const finishRow = hist.find(h => h[7] === 'CP6' || h[5] >= 104);
                     let totalH = 0, totalM = 0;
@@ -508,28 +538,7 @@
                         totalM = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                     }
 
-                    // คำนวณอันดับ
-                    const summary = {};
-                    allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
-                        const b = String(r[2]).trim();
-                        const d = parseFloat(r[5]) || 0;
-                        const reg = allData.find(rg => rg[1] === 'REG' && String(rg[2]).trim() === b);
-                        if (reg) {
-                            if (!summary[b] || d > summary[b].dist) {
-                                summary[b] = { bib: b, dist: d, cat: reg[8], gender: reg[7] };
-                            }
-                        }
-                    });
-
-                    const sameCategoryRunners = Object.values(summary).filter(r => {
-                        if (info[8] === 'Solo') return r.cat === 'Solo' && r.gender === info[7];
-                        return r.cat === info[8];
-                    }).sort((a,b) => b.dist - a.dist);
-
-                    const myRank = sameCategoryRunners.findIndex(r => r.bib === bib) + 1 || 1;
-
-                    // 3. เสียง AI สรรเสริญตื่นเต้น
-                    const speakFinish = `คุณ${info[3]} คุณทำสำเร็จแล้ว 104 กิโลเมตร ระยะเวลา ${totalH} ชั่วโมง ${totalM} นาที ลำดับที่ ${myRank} ยินดีด้วยค่ะ`;
+                    const speakFinish = `คุณ${info[3]} คุณทำสำเร็จแล้ว 104 กิโลเมตร ระยะเวลา ${totalH} ชั่วโมง ${totalM} นาที ลำดับที่ ${currentRank} ยินดีด้วยค่ะ`;
                     setTimeout(() => speak(speakFinish), 600);
                 }
             }
