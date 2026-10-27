@@ -760,15 +760,16 @@
     }
 
     // 🚀 ระบบ Event Listener หลัก (รวมศูนย์สมบูรณ์แบบ)
-    window.addEventListener('load', () => {
-        // 1. ระบบสมัครนักวิ่ง + ตรวจสอบ BIB ซ้ำ
+    // 1. ระบบสมัครนักวิ่ง + ตรวจสอบ BIB ซ้ำ (ตัดช่องว่างทุกจุดอัตโนมัติ)
         const regForm = document.getElementById('regForm');
         if (regForm) {
             regForm.addEventListener('submit', async (e) => {
                 e.preventDefault(); 
                 showLoading(true);
 
-                const bib = document.getElementById('regBib').value.trim();
+                // 🎯 ลบช่องว่างทั้งหมดออกอัตโนมัติ (เช่น "1 215" หรือ " 1215 " จะกลายเป็น "1215")
+                const rawBib = document.getElementById('regBib').value;
+                const bib = rawBib.replace(/\s+/g, '').toUpperCase(); 
                 const name = document.getElementById('regName').value.trim();
                 const gender = document.getElementById('regGender').value;
                 const category = document.getElementById('regCategory').value;
@@ -777,10 +778,11 @@
                     const res = await fetch(SCRIPT_URL);
                     allData = await res.json();
 
-                    const isDuplicate = allData.some(r => r[1] === 'REG' && String(r[2]).trim().toUpperCase() === bib.toUpperCase());
+                    // เช็ค BIB ซ้ำโดยลบช่องว่างของข้อมูลใน Sheet ออกด้วย
+                    const isDuplicate = allData.some(r => r[1] === 'REG' && String(r[2]).replace(/\s+/g, '').toUpperCase() === bib);
 
                     if (isDuplicate) {
-                        const dupRunner = allData.find(r => r[1] === 'REG' && String(r[2]).trim().toUpperCase() === bib.toUpperCase());
+                        const dupRunner = allData.find(r => r[1] === 'REG' && String(r[2]).replace(/\s+/g, '').toUpperCase() === bib);
                         const dupName = dupRunner ? dupRunner[3] : "";
 
                         alert(`⚠️ เลข BIB ${bib} นี้ถูกลงทะเบียนไปแล้ว!\n(ชื่อ: ${dupName})`);
