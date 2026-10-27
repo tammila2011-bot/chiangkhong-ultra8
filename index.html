@@ -598,7 +598,8 @@
                 return;
             }
 
-            const runnerName = info[3] || "นักวิ่ง";
+            const fullName = (info[4] && info[4] !== '-') ? info[4] : info[3];
+            const runnerName = fullName || "นักวิ่ง";
             const runnerCat = info[8] || "Solo";
             const runnerGender = (info[9] || info[7] || "M").toUpperCase(); // ดึงค่าเพศรัดกุม
 
