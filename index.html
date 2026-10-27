@@ -394,18 +394,28 @@
         allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
             const bib = String(r[2]).replace(/\s+/g, '').toUpperCase();
             const d = parseFloat(r[5]) || 0;
-            
-            const reg = allData.find(reg => reg[1] === 'REG' && String(reg[2]).replace(/\s+/g, '').toUpperCase() === bib);
+            const reg = allData.find(rg => rg[1] === 'REG' && String(rg[2]).replace(/\s+/g, '').toUpperCase() === bib);
             
             if (reg) {
                 const cat = reg[8] || "Solo";    
                 const gender = (reg[9] || reg[7] || "M").toUpperCase(); 
                 
+                // คำนวณเวลาสะสมจาก Start ถึงจุดล่าสุด
+                const userHist = allData.filter(h => String(h[2]).replace(/\s+/g, '').toUpperCase() === bib && h[1] === 'RUN');
+                const startRow = userHist.find(h => h[7] === 'Start' || h[5] == 0);
+                userHist.sort((a,b) => parseFloat(b[5]) - parseFloat(a[5]));
+                const lastRow = userHist[0];
+                let timeDiff = Infinity;
+                if (startRow && lastRow) {
+                    timeDiff = new Date(lastRow[0]).getTime() - new Date(startRow[0]).getTime();
+                }
+
                 if (!summary[bib] || d > summary[bib].dist) {
                     summary[bib] = { 
                         bib: bib, 
                         name: r[3], 
                         dist: d, 
+                        timeDiff: timeDiff,
                         cat: cat, 
                         gender: gender 
                     };
@@ -413,6 +423,7 @@
             }
         });
 
+        // 🎯 เรียงลำดับ: ระยะทางมากที่สุดก่อน ถ้าระยะเท่ากันเอาเวลาน้อยที่สุดขึ้นก่อน
         const sorted = Object.values(summary).filter(r => {
             if (f === 'All') return true;
             if (f === 'Solo_M') return (r.cat === 'Solo' && r.gender === 'M');
@@ -421,7 +432,10 @@
             if (f === 'Team3') return (r.cat === 'Team3');
             if (f === 'Team10') return (r.cat === 'Team10');
             return false;
-        }).sort((a, b) => b.dist - a.dist);
+        }).sort((a, b) => {
+            if (b.dist !== a.dist) return b.dist - a.dist; // ระยะทางต่างกัน เอาคนวิ่งเยอะกว่าขึ้นก่อน
+            return a.timeDiff - b.timeDiff;               // ระยะทางเท่ากัน เอาคนที่ใช้เวลาน้อยกว่าขึ้นก่อน
+        });
 
         let html = '';
         if (sorted.length === 0) {
