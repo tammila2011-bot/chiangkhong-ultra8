@@ -485,19 +485,21 @@
                 
                 if (maxD > 0) document.getElementById('certArea').style.display = 'block';
 
-                // ⏱️ 1. คำนวณเวลารวม (Total Time) จาก Start ถึงจุดสแกนล่าสุด
+                // ⏱️ 1. คำนวณเวลารวม (Total Time)
                 const startRow = hist.find(h => h[7] === 'Start' || h[5] == 0);
                 hist.sort((a,b) => parseFloat(b[5]) - parseFloat(a[5]));
                 const lastRow = hist[0];
 
                 let totalHours = 0, totalMins = 0, totalSecs = 0;
                 let totalTimeDisplay = "--:--:--";
+                let myTimeDiff = Infinity;
 
                 if (startRow && lastRow) {
                     const tStart = new Date(startRow[0]).getTime();
                     const tLast = new Date(lastRow[0]).getTime();
-                    let diff = Math.max(0, tLast - tStart);
+                    myTimeDiff = Math.max(0, tLast - tStart);
 
+                    let diff = myTimeDiff;
                     totalHours = Math.floor(diff / (1000 * 60 * 60));
                     diff %= (1000 * 60 * 60);
                     totalMins = Math.floor(diff / (1000 * 60));
@@ -507,7 +509,7 @@
                     totalTimeDisplay = `${String(totalHours).padStart(2, '0')}:${String(totalMins).padStart(2, '0')}:${String(totalSecs).padStart(2, '0')}`;
                 }
 
-                // 🏆 2. คำนวณอันดับ Live Ranking
+                // 🏆 2. คำนวณอันดับ Live Ranking (เช็คทั้งระยะทาง และ เวลารวม)
                 const summary = {};
                 allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
                     const b = String(r[2]).replace(/\s+/g, '').toUpperCase();
@@ -516,8 +518,18 @@
                     if (reg) {
                         const rCat = reg[8] || "Solo";
                         const rGender = (reg[9] || reg[7] || "M").toUpperCase();
+
+                        const userHist = allData.filter(h => String(h[2]).replace(/\s+/g, '').toUpperCase() === b && h[1] === 'RUN');
+                        const stRow = userHist.find(h => h[7] === 'Start' || h[5] == 0);
+                        userHist.sort((a,b) => parseFloat(b[5]) - parseFloat(a[5]));
+                        const ltRow = userHist[0];
+                        let tDiff = Infinity;
+                        if (stRow && ltRow) {
+                            tDiff = new Date(ltRow[0]).getTime() - new Date(stRow[0]).getTime();
+                        }
+
                         if (!summary[b] || d > summary[b].dist) {
-                            summary[b] = { bib: b, dist: d, cat: rCat, gender: rGender };
+                            summary[b] = { bib: b, dist: d, timeDiff: tDiff, cat: rCat, gender: rGender };
                         }
                     }
                 });
@@ -527,7 +539,10 @@
                         return r.cat === 'Solo' && r.gender === runnerGender;
                     }
                     return r.cat === runnerCat;
-                }).sort((a,b) => b.dist - a.dist);
+                }).sort((a,b) => {
+                    if (b.dist !== a.dist) return b.dist - a.dist;
+                    return a.timeDiff - b.timeDiff;
+                });
 
                 const myRankIndex = sameCategoryRunners.findIndex(r => r.bib === bib);
                 const currentRank = (myRankIndex !== -1 && maxD > 0) ? (myRankIndex + 1) : "-";
