@@ -208,12 +208,13 @@
     function handleLogoClick() { adminClicks++; if(adminClicks>=5) { alert("Admin Mode"); adminClicks=0; } }
 
     async function verifyStep1() {
-        const bib = document.getElementById('scanBib').value.trim();
+        const rawBib = document.getElementById('scanBib').value;
+        const bib = rawBib.replace(/\s+/g, '').toUpperCase();
         if(!bib) return;
         showLoading(true);
         try {
             const res = await fetch(SCRIPT_URL); allData = await res.json();
-            const runner = allData.find(r => String(r[2]) === bib && r[1] === 'REG');
+            const runner = allData.find(r => String(r[2]).replace(/\s+/g, '').toUpperCase() === bib && r[1] === 'REG');
             if(runner) {
                 currentRunner = { bib: bib, name: runner[3], cat: runner[8], gender: runner[7] };
                 document.getElementById('confirmName').innerText = runner[3];
@@ -228,7 +229,7 @@
     }
 
     function showRunnerHistoryScan(bib) {
-        const hist = allData.filter(r => String(r[2]) === bib && r[1] === 'RUN');
+        const hist = allData.filter(r => String(r[2]).replace(/\s+/g, '').toUpperCase() === bib && r[1] === 'RUN');
         let html = '<div class="card bg-black p-3 border-secondary small mt-2"><h6 class="text-warning small fw-bold mb-2">ประวัติจุดสแกนล่าสุด</h6>';
         if(hist.length === 0) html += '<div class="opacity-50 text-center">ยังไม่มีข้อมูล</div>';
         else {
@@ -242,7 +243,7 @@
     }
 
     async function unlockCPButtons() {
-        const hist = allData.filter(r => String(r[2]) === currentRunner.bib && r[1] === 'RUN');
+        const hist = allData.filter(r => String(r[2]).replace(/\s+/g, '').toUpperCase() === currentRunner.bib && r[1] === 'RUN');
         const maxD = hist.reduce((max, r) => Math.max(max, parseFloat(r[5]) || 0), -1);
         
         document.getElementById('scanStep2').style.display = 'none';
@@ -391,14 +392,14 @@
         const summary = {};
         
         allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
-            const bib = String(r[2]).trim();
+            const bib = String(r[2]).replace(/\s+/g, '').toUpperCase();
             const d = parseFloat(r[5]) || 0;
             
-            const reg = allData.find(reg => reg[1] === 'REG' && String(reg[2]).trim() === bib);
+            const reg = allData.find(reg => reg[1] === 'REG' && String(reg[2]).replace(/\s+/g, '').toUpperCase() === bib);
             
             if (reg) {
-                const cat = reg[8];    
-                const gender = reg[9]; 
+                const cat = reg[8] || "Solo";    
+                const gender = (reg[9] || reg[7] || "M").toUpperCase(); 
                 
                 if (!summary[bib] || d > summary[bib].dist) {
                     summary[bib] = { 
@@ -441,7 +442,8 @@
     }
 
     async function loadMyResult() {
-        const bib = document.getElementById('meBib').value.trim();
+        const rawBib = document.getElementById('meBib').value;
+        const bib = rawBib.replace(/\s+/g, '').toUpperCase();
         if(!bib) return;
         showLoading(true);
 
@@ -453,8 +455,8 @@
 
         try {
             const res = await fetch(SCRIPT_URL); allData = await res.json();
-            const hist = allData.filter(r => String(r[2]) === bib && r[1] === 'RUN');
-            const info = allData.find(r => String(r[2]) === bib && r[1] === 'REG');
+            const hist = allData.filter(r => String(r[2]).replace(/\s+/g, '').toUpperCase() === bib && r[1] === 'RUN');
+            const info = allData.find(r => String(r[2]).replace(/\s+/g, '').toUpperCase() === bib && r[1] === 'REG');
             document.getElementById('certArea').style.display = 'none';
             document.getElementById('certWrapper').style.display = 'none';
             
@@ -463,9 +465,8 @@
             } else {
                 const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
                 
-                // 🎯 ดึงเพศ และ ประเภท จากคอลัมน์ใน Sheet ให้ถูกต้องรัดกุม
                 const runnerCat = info[8] || "Solo";
-                const runnerGender = info[9] || info[7] || "M";
+                const runnerGender = (info[9] || info[7] || "M").toUpperCase();
                 currentRunner = { bib: bib, name: info[3], cat: runnerCat, gender: runnerGender };
                 
                 if (maxD > 0) document.getElementById('certArea').style.display = 'block';
@@ -492,25 +493,24 @@
                     totalTimeDisplay = `${String(totalHours).padStart(2, '0')}:${String(totalMins).padStart(2, '0')}:${String(totalSecs).padStart(2, '0')}`;
                 }
 
-                // 🏆 2. คำนวณอันดับ Live Ranking (แยก Solo-M / Solo-F / ทีม ชัดเจน)
+                // 🏆 2. คำนวณอันดับ Live Ranking
                 const summary = {};
                 allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
-                    const b = String(r[2]).trim();
+                    const b = String(r[2]).replace(/\s+/g, '').toUpperCase();
                     const d = parseFloat(r[5]) || 0;
-                    const reg = allData.find(rg => rg[1] === 'REG' && String(rg[2]).trim() === b);
+                    const reg = allData.find(rg => rg[1] === 'REG' && String(rg[2]).replace(/\s+/g, '').toUpperCase() === b);
                     if (reg) {
                         const rCat = reg[8] || "Solo";
-                        const rGender = reg[9] || reg[7] || "M";
+                        const rGender = (reg[9] || reg[7] || "M").toUpperCase();
                         if (!summary[b] || d > summary[b].dist) {
                             summary[b] = { bib: b, dist: d, cat: rCat, gender: rGender };
                         }
                     }
                 });
 
-                // กรองเฉพาะนักวิ่งที่อยู่ในประเภทและเพศเดียวกัน
                 const sameCategoryRunners = Object.values(summary).filter(r => {
                     if (runnerCat === 'Solo') {
-                        return r.cat === 'Solo' && r.gender.toUpperCase() === runnerGender.toUpperCase();
+                        return r.cat === 'Solo' && r.gender === runnerGender;
                     }
                     return r.cat === runnerCat;
                 }).sort((a,b) => b.dist - a.dist);
@@ -518,19 +518,16 @@
                 const myRankIndex = sameCategoryRunners.findIndex(r => r.bib === bib);
                 const currentRank = (myRankIndex !== -1 && maxD > 0) ? (myRankIndex + 1) : "-";
 
-                // ข้อความแสดงประเภทและเพศ
                 let genderLabel = "";
                 if (runnerCat === 'Solo') {
-                    genderLabel = (runnerGender.toUpperCase() === 'F') ? "Solo (หญิง)" : "Solo (ชาย)";
+                    genderLabel = (runnerGender === 'F') ? "Solo (หญิง)" : "Solo (ชาย)";
                 } else {
                     genderLabel = `${runnerCat}`;
                 }
 
-                // 🎯 เช็คว่าระยะทางเท่ากับหรือมากกว่า 104 กม. หรือไม่
                 const is104Finish = maxD >= 104;
                 const numClass = is104Finish ? "text-warning celebrate-104 fw-bold display-4" : "text-warning fw-bold display-5";
 
-                // 🎨 การ์ดสรุปผลงานปรับปรุงใหม่ (มีเวลารวมเรียลไทม์ Total Time)
                 let html = `
                 <div class="p-3 bg-dark rounded-4 text-center border border-warning mb-3 shadow position-relative overflow-hidden" style="background: linear-gradient(145deg, #111111, #221c10);">
                     <div class="d-flex justify-content-between align-items-center mb-1 px-2">
@@ -562,7 +559,6 @@
                 });
                 document.getElementById('meContent').innerHTML = html;
 
-                // 🎆 🎉 ถ้าวิ่งครบ 104 กม. ยิงพลุ + ประกาศเสียงตื่นเต้น!
                 if (is104Finish) {
                     if (typeof confetti === 'function') {
                         confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
@@ -578,9 +574,10 @@
         showLoading(false);
     }
 
-    // 🏆 ฟังก์ชันสร้างใบเกียรติบัตร (แยกอันดับ Solo ตามเพศ M/F แม่นยำตรงกับการ์ดผลงาน)
+    // 🏆 ฟังก์ชันสร้างใบเกียรติบัตร
     async function generateCertificate() {
-        const meBib = document.getElementById('meBib').value.trim();
+        const rawBib = document.getElementById('meBib').value;
+        const meBib = rawBib.replace(/\s+/g, '').toUpperCase();
         if(!meBib) return;
 
         showLoading(true);
@@ -589,8 +586,8 @@
             const res = await fetch(SCRIPT_URL); 
             allData = await res.json();
 
-            const info = allData.find(r => String(r[2]) === meBib && r[1] === 'REG');
-            const hist = allData.filter(r => String(r[2]) === meBib && r[1] === 'RUN');
+            const info = allData.find(r => String(r[2]).replace(/\s+/g, '').toUpperCase() === meBib && r[1] === 'REG');
+            const hist = allData.filter(r => String(r[2]).replace(/\s+/g, '').toUpperCase() === meBib && r[1] === 'RUN');
 
             if (!info) {
                 alert("ไม่พบข้อมูลนักวิ่ง");
@@ -601,12 +598,10 @@
             const fullName = (info[4] && info[4] !== '-') ? info[4] : info[3];
             const runnerName = fullName || "นักวิ่ง";
             const runnerCat = info[8] || "Solo";
-            const runnerGender = (info[9] || info[7] || "M").toUpperCase(); // ดึงค่าเพศรัดกุม
+            const runnerGender = (info[9] || info[7] || "M").toUpperCase();
 
-            // 🎯 ระยะทางสูงสุดที่ทำได้จริง ณ จุดสแกนล่าสุด
             const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
 
-            // --- 1. คำนวณเวลารวม ---
             const startRow = hist.find(h => h[7] === 'Start' || h[5] == 0);
             
             hist.sort((a,b) => parseFloat(b[5]) - parseFloat(a[5]));
@@ -629,12 +624,11 @@
                 timeStr = `${String(totalHours).padStart(2, '0')}:${String(totalMins).padStart(2, '0')}:${String(totalSecs).padStart(2, '0')}`;
             }
 
-            // --- 2. คำนวณลำดับ Rank แยกตามประเภทและเพศ (Solo-M / Solo-F) ---
             const summary = {};
             allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
-                const b = String(r[2]).trim();
+                const b = String(r[2]).replace(/\s+/g, '').toUpperCase();
                 const d = parseFloat(r[5]) || 0;
-                const reg = allData.find(rg => rg[1] === 'REG' && String(rg[2]).trim() === b);
+                const reg = allData.find(rg => rg[1] === 'REG' && String(rg[2]).replace(/\s+/g, '').toUpperCase() === b);
                 if (reg) {
                     const rCat = reg[8] || "Solo";
                     const rGender = (reg[9] || reg[7] || "M").toUpperCase();
@@ -644,7 +638,6 @@
                 }
             });
 
-            // กรองกลุ่มเดียวกันเป๊ะๆ (Solo ต้องเช็คเพศตรงกัน)
             const sameCategoryRunners = Object.values(summary).filter(r => {
                 if (runnerCat === 'Solo') {
                     return r.cat === 'Solo' && r.gender === runnerGender;
@@ -656,13 +649,11 @@
             const rankNum = (myRankIndex !== -1 && maxD > 0) ? (myRankIndex + 1) : 1;
             const rankStr = `Rank ${rankNum}`;
 
-            // --- 3. คำนวณ Pace เฉลี่ย/ล่าสุด ---
             let avgPaceStr = "0:00";
             if (lastRow && lastRow[10] && lastRow[10] !== '-') {
                 avgPaceStr = String(lastRow[10]).replace("'", "");
             }
 
-            // --- 4. วาดภาพ Canvas ลงบนใบเกียรติบัตร ---
             const canvas = document.getElementById('certCanvas');
             const ctx = canvas.getContext('2d');
             const img = new Image();
@@ -677,11 +668,9 @@
                 ctx.textAlign = "left";
                 ctx.font = "bold 90px Prompt, sans-serif";
 
-                // พิกัดจูนตำแหน่งข้อความบนภาพ
-                ctx.fillText(meBib, 160, 440);          // BIB
-                ctx.fillText(runnerName, 420, 440);     // ชื่อนักวิ่ง
+                ctx.fillText(meBib, 160, 440);          
+                ctx.fillText(runnerName, 420, 440);     
                 
-                // 🚩 แสดงประเภทแยกเพศ + ระยะทางจริง (เช่น SOLO-M (7.0 KM) หรือ SOLO-F (7.0 KM))
                 let catLabel = runnerCat.toUpperCase();
                 if (runnerCat === 'Solo') {
                     catLabel = (runnerGender === 'F') ? "SOLO-F" : "SOLO-M";
@@ -689,9 +678,9 @@
                 const catWithDist = `${catLabel} (${maxD.toFixed(1)} KM)`;
                 ctx.fillText(catWithDist, 1550, 440);
 
-                ctx.fillText(rankStr, 160, 600);        // ลำดับ Rank (ตรงกับการ์ดสรุปเป๊ะ)
-                ctx.fillText(`Time ${timeStr}`, 650, 600);  // เวลารวม
-                ctx.fillText(`Pace ${avgPaceStr}`, 1400, 600); // Pace
+                ctx.fillText(rankStr, 160, 600);        
+                ctx.fillText(`Time ${timeStr}`, 650, 600);  
+                ctx.fillText(`Pace ${avgPaceStr}`, 1400, 600); 
 
                 const dataURL = canvas.toDataURL("image/png");
                 const finalImg = new Image();
@@ -709,14 +698,12 @@
                 wrapper.style.display = 'block';
                 wrapper.scrollIntoView({ behavior: 'smooth' });
 
-                // 🎆 5. ยิงพลุฉลองชัย
                 if (typeof confetti === 'function') {
                     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                     setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 } }), 250);
                     setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 } }), 400);
                 }
 
-                // 🎙️ 6. เสียง AI ประกาศฉลองชัย
                 let speakMsg = "";
                 if (maxD >= 104) {
                     speakMsg = `ยินดีกับความสำเร็จ ChiangKhong Ultra Marathon ของคุณ${runnerName} คุณวิ่งได้ 104 กิโลเมตร เวลา ${totalHours} ชั่วโมง ${totalMins} นาที ${totalSecs} วินาที ได้ลำดับที่ ${rankNum} คุณ${runnerName} คุณเก่งมากค่ะ`;
@@ -760,14 +747,14 @@
     }
 
     // 🚀 ระบบ Event Listener หลัก (รวมศูนย์สมบูรณ์แบบ)
-    // 1. ระบบสมัครนักวิ่ง + ตรวจสอบ BIB ซ้ำ (ตัดช่องว่างทุกจุดอัตโนมัติ)
+    window.addEventListener('load', () => {
+        // 1. ระบบสมัครนักวิ่ง + ตรวจสอบ BIB ซ้ำ (ตัดช่องว่างทุกจุดอัตโนมัติ)
         const regForm = document.getElementById('regForm');
         if (regForm) {
             regForm.addEventListener('submit', async (e) => {
                 e.preventDefault(); 
                 showLoading(true);
 
-                // 🎯 ลบช่องว่างทั้งหมดออกอัตโนมัติ (เช่น "1 215" หรือ " 1215 " จะกลายเป็น "1215")
                 const rawBib = document.getElementById('regBib').value;
                 const bib = rawBib.replace(/\s+/g, '').toUpperCase(); 
                 const name = document.getElementById('regName').value.trim();
@@ -778,7 +765,6 @@
                     const res = await fetch(SCRIPT_URL);
                     allData = await res.json();
 
-                    // เช็ค BIB ซ้ำโดยลบช่องว่างของข้อมูลใน Sheet ออกด้วย
                     const isDuplicate = allData.some(r => r[1] === 'REG' && String(r[2]).replace(/\s+/g, '').toUpperCase() === bib);
 
                     if (isDuplicate) {
