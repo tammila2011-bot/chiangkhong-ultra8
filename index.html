@@ -463,14 +463,36 @@
             } else {
                 const maxD = hist.length ? Math.max(...hist.map(h => parseFloat(h[5]) || 0)) : 0;
                 
-                // 🎯 ดึงเพศ และ ประเภท จากคอลัมน์ใน Sheet ให้ถูกต้องรัดกุม (รองรับทั้ง Index 7, 8, 9)
+                // 🎯 ดึงเพศ และ ประเภท จากคอลัมน์ใน Sheet ให้ถูกต้องรัดกุม
                 const runnerCat = info[8] || "Solo";
                 const runnerGender = info[9] || info[7] || "M";
                 currentRunner = { bib: bib, name: info[3], cat: runnerCat, gender: runnerGender };
                 
                 if (maxD > 0) document.getElementById('certArea').style.display = 'block';
 
-                // 🏆 1. คำนวณอันดับ Live Ranking (แยก Solo-M / Solo-F / ทีม ชัดเจน)
+                // ⏱️ 1. คำนวณเวลารวม (Total Time) จาก Start ถึงจุดสแกนล่าสุด
+                const startRow = hist.find(h => h[7] === 'Start' || h[5] == 0);
+                hist.sort((a,b) => parseFloat(b[5]) - parseFloat(a[5]));
+                const lastRow = hist[0];
+
+                let totalHours = 0, totalMins = 0, totalSecs = 0;
+                let totalTimeDisplay = "--:--:--";
+
+                if (startRow && lastRow) {
+                    const tStart = new Date(startRow[0]).getTime();
+                    const tLast = new Date(lastRow[0]).getTime();
+                    let diff = Math.max(0, tLast - tStart);
+
+                    totalHours = Math.floor(diff / (1000 * 60 * 60));
+                    diff %= (1000 * 60 * 60);
+                    totalMins = Math.floor(diff / (1000 * 60));
+                    diff %= (1000 * 60);
+                    totalSecs = Math.floor(diff / 1000);
+
+                    totalTimeDisplay = `${String(totalHours).padStart(2, '0')}:${String(totalMins).padStart(2, '0')}:${String(totalSecs).padStart(2, '0')}`;
+                }
+
+                // 🏆 2. คำนวณอันดับ Live Ranking (แยก Solo-M / Solo-F / ทีม ชัดเจน)
                 const summary = {};
                 allData.filter(r => r[1] === 'RUN' && r[2] !== 'BIB').forEach(r => {
                     const b = String(r[2]).trim();
@@ -508,7 +530,7 @@
                 const is104Finish = maxD >= 104;
                 const numClass = is104Finish ? "text-warning celebrate-104 fw-bold display-4" : "text-warning fw-bold display-5";
 
-                // 🎨 การ์ดสรุปผลงานปรับปรุงใหม่ (แยกอันดับตามเพศแม่นยำ)
+                // 🎨 การ์ดสรุปผลงานปรับปรุงใหม่ (มีเวลารวมเรียลไทม์ Total Time)
                 let html = `
                 <div class="p-3 bg-dark rounded-4 text-center border border-warning mb-3 shadow position-relative overflow-hidden" style="background: linear-gradient(145deg, #111111, #221c10);">
                     <div class="d-flex justify-content-between align-items-center mb-1 px-2">
@@ -519,6 +541,9 @@
                     <small class="text-warning opacity-75">ประเภท: ${genderLabel}</small>
                     <div class="my-3">
                         <h1 class="${numClass} m-0">${maxD.toFixed(1)} กม.</h1>
+                        <div class="mt-2 text-info fw-bold fs-5">
+                            ⏱️ เวลารวม: <span class="text-white font-monospace">${totalTimeDisplay}</span>
+                        </div>
                     </div>
                 </div>`;
                 
@@ -545,17 +570,7 @@
                         setTimeout(() => confetti({ particleCount: 70, angle: 120, spread: 60, origin: { x: 1 } }), 500);
                     }
 
-                    const startRow = hist.find(h => h[7] === 'Start' || h[5] == 0);
-                    const finishRow = hist.find(h => h[7] === 'CP6' || h[5] >= 104);
-                    let totalH = 0, totalM = 0;
-
-                    if (startRow && finishRow) {
-                        const diff = Math.max(0, new Date(finishRow[0]).getTime() - new Date(startRow[0]).getTime());
-                        totalH = Math.floor(diff / (1000 * 60 * 60));
-                        totalM = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    }
-
-                    const speakFinish = `คุณ${info[3]} คุณทำสำเร็จแล้ว 104 กิโลเมตร ระยะเวลา ${totalH} ชั่วโมง ${totalM} นาที ลำดับที่ ${currentRank} ยินดีด้วยค่ะ`;
+                    const speakFinish = `คุณ${info[3]} คุณทำสำเร็จแล้ว 104 กิโลเมตร ระยะเวลา ${totalHours} ชั่วโมง ${totalMins} นาที ลำดับที่ ${currentRank} ยินดีด้วยค่ะ`;
                     setTimeout(() => speak(speakFinish), 600);
                 }
             }
