@@ -678,8 +678,8 @@
                 ctx.font = "bold 90px Prompt, sans-serif";
 
                 // พิกัดจูนตำแหน่งข้อความบนภาพ
-                ctx.fillText(meBib, 260, 440);          // BIB
-                ctx.fillText(runnerName, 550, 440);     // ชื่อนักวิ่ง
+                ctx.fillText(meBib, 160, 440);          // BIB
+                ctx.fillText(runnerName, 420, 440);     // ชื่อนักวิ่ง
                 
                 // 🚩 แสดงประเภทแยกเพศ + ระยะทางจริง (เช่น SOLO-M (7.0 KM) หรือ SOLO-F (7.0 KM))
                 let catLabel = runnerCat.toUpperCase();
@@ -687,7 +687,7 @@
                     catLabel = (runnerGender === 'F') ? "SOLO-F" : "SOLO-M";
                 }
                 const catWithDist = `${catLabel} (${maxD.toFixed(1)} KM)`;
-                ctx.fillText(catWithDist, 1450, 440);
+                ctx.fillText(catWithDist, 1550, 440);
 
                 ctx.fillText(rankStr, 160, 600);        // ลำดับ Rank (ตรงกับการ์ดสรุปเป๊ะ)
                 ctx.fillText(`Time ${timeStr}`, 650, 600);  // เวลารวม
